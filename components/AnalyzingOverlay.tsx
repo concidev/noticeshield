@@ -33,7 +33,6 @@ export function AnalyzingOverlay({ streamText }: { streamText?: string }) {
       minHeight: 400, textAlign: "center",
     }}>
 
-      {/* Pulsing shield */}
       <div style={{
         width: 88, height: 88, borderRadius: "50%",
         background: "var(--primary)",
@@ -48,7 +47,6 @@ export function AnalyzingOverlay({ streamText }: { streamText?: string }) {
         </span>
       </div>
 
-      {/* Title */}
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <h2 className="text-h1" style={{ color: "var(--primary)", margin: 0 }}>
           Analyzing Notice
@@ -64,7 +62,6 @@ export function AnalyzingOverlay({ streamText }: { streamText?: string }) {
         </span>
       </div>
 
-      {/* Current step card */}
       <div style={{
         background: "var(--surface)",
         border: "1px solid var(--outline-variant)",
@@ -91,7 +88,6 @@ export function AnalyzingOverlay({ streamText }: { streamText?: string }) {
         </span>
       </div>
 
-      {/* Live streaming output */}
       {isStreaming && streamText && (
         <div style={{
           width: "100%", maxWidth: 360,
@@ -117,7 +113,6 @@ export function AnalyzingOverlay({ streamText }: { streamText?: string }) {
         </div>
       )}
 
-      {/* Progress dots */}
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         {STEPS.map((_, i) => (
           <div key={i} style={{

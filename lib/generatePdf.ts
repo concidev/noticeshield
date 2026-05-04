@@ -38,10 +38,10 @@ export async function downloadActionPlan(analysis: NoticeAnalysis): Promise<void
   const contentW = pageW - M * 2;
   let y = M;
 
-  const fill  = (rgb: RGB) => doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+  const fill = (rgb: RGB) => doc.setFillColor(rgb[0], rgb[1], rgb[2]);
   const color = (rgb: RGB) => doc.setTextColor(rgb[0], rgb[1], rgb[2]);
   const stroke = (rgb: RGB) => doc.setDrawColor(rgb[0], rgb[1], rgb[2]);
-  const wrap  = (text: string, maxW = contentW) => doc.splitTextToSize(text, maxW) as string[];
+  const wrap = (text: string, maxW = contentW) => doc.splitTextToSize(text, maxW) as string[];
 
   function checkBreak(needed: number) {
     if (y + needed > pageH - M) {
@@ -64,7 +64,6 @@ export async function downloadActionPlan(analysis: NoticeAnalysis): Promise<void
     y += 48;
   }
 
-  // ── HEADER BAR ──────────────────────────────────────────────────────────
   fill(C.primary);
   doc.rect(M, y, contentW, 52, "F");
   doc.setFont("helvetica", "bold");
@@ -81,7 +80,6 @@ export async function downloadActionPlan(analysis: NoticeAnalysis): Promise<void
   );
   y += 66;
 
-  // ── URGENCY BANNER ───────────────────────────────────────────────────────
   const urgencyRgb = URGENCY_COLORS[analysis.urgency] ?? C.primary;
   fill(urgencyRgb);
   doc.roundedRect(M, y, contentW, 32, 3, 3, "F");
@@ -94,7 +92,6 @@ export async function downloadActionPlan(analysis: NoticeAnalysis): Promise<void
   doc.text(bannerText, pageW / 2, y + 21, { align: "center" });
   y += 46;
 
-  // ── NOTICE TYPE + LOCATION ───────────────────────────────────────────────
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
   color(C.dark);
@@ -109,7 +106,6 @@ export async function downloadActionPlan(analysis: NoticeAnalysis): Promise<void
   }
   y += 10;
 
-  // ── KEY DETAILS GRID ─────────────────────────────────────────────────────
   sectionHeader("Key Details");
   const colW = (contentW - 12) / 2;
   [
@@ -131,7 +127,6 @@ export async function downloadActionPlan(analysis: NoticeAnalysis): Promise<void
   });
   y += 54;
 
-  // ── WHAT THIS MEANS ──────────────────────────────────────────────────────
   sectionHeader("What This Means");
   const summaryLines = wrap(analysis.summary);
   checkBreak(summaryLines.length * 14 + 8);
@@ -141,7 +136,6 @@ export async function downloadActionPlan(analysis: NoticeAnalysis): Promise<void
   doc.text(summaryLines, M, y);
   y += summaryLines.length * 14 + 10;
 
-  // ── RISK IF IGNORED ───────────────────────────────────────────────────────
   sectionHeader("Risk If Ignored");
   const riskLines = wrap(analysis.riskIfIgnored, contentW - 24);
   const riskBoxH = riskLines.length * 13 + 24;
@@ -154,7 +148,6 @@ export async function downloadActionPlan(analysis: NoticeAnalysis): Promise<void
   doc.text(riskLines, M + 12, y + 16);
   y += riskBoxH + 10;
 
-  // ── REQUIRED STEPS ────────────────────────────────────────────────────────
   sectionHeader("Required Steps");
   analysis.nextSteps.forEach((step, i) => {
     const stepLines = wrap(step, contentW - 32);
@@ -176,7 +169,6 @@ export async function downloadActionPlan(analysis: NoticeAnalysis): Promise<void
   });
   y += 4;
 
-  // ── SUGGESTED MESSAGE ─────────────────────────────────────────────────────
   if (analysis.suggestedMessage) {
     sectionHeader("Suggested Message to Send");
     const msgLines = wrap(analysis.suggestedMessage, contentW - 24);
@@ -195,7 +187,6 @@ export async function downloadActionPlan(analysis: NoticeAnalysis): Promise<void
     y += 16;
   }
 
-  // ── LOCAL RESOURCES ───────────────────────────────────────────────────────
   if (analysis.localResources?.length) {
     sectionHeader("Local Help & Resources");
     analysis.localResources.forEach((r) => {
@@ -221,7 +212,6 @@ export async function downloadActionPlan(analysis: NoticeAnalysis): Promise<void
     });
   }
 
-  // ── DISCLAIMER ────────────────────────────────────────────────────────────
   sectionHeader("Important Disclaimer");
   const disclaimerLines = wrap(analysis.disclaimer, contentW - 24);
   const disclaimerBoxH = disclaimerLines.length * 12 + 20;
@@ -234,7 +224,6 @@ export async function downloadActionPlan(analysis: NoticeAnalysis): Promise<void
   doc.text(disclaimerLines, M + 12, y + 14);
   y += disclaimerBoxH + 10;
 
-  // ── FOOTER ON EVERY PAGE ─────────────────────────────────────────────────
   const totalPages = doc.getNumberOfPages();
   for (let p = 1; p <= totalPages; p++) {
     doc.setPage(p);

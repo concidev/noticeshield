@@ -301,8 +301,6 @@ const ENTRIES: CacheEntry[] = [
   },
 ];
 
-const FINGERPRINT_LENGTH = 50;
-
 function normalize(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }

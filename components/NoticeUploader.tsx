@@ -181,7 +181,6 @@ export function NoticeUploader({ onSubmit, isLoading }: Props) {
   return (
     <div className="notice-uploader" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-      {/* Location control */}
       <div className="uploader-controls" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <LocationSelector
           regionIndex={regionIndex}
@@ -192,7 +191,6 @@ export function NoticeUploader({ onSubmit, isLoading }: Props) {
           }}
         />
 
-        {/* Translation hint */}
         <div style={{
           display: "flex", alignItems: "center", gap: 10,
           padding: "10px 14px",
@@ -206,7 +204,6 @@ export function NoticeUploader({ onSubmit, isLoading }: Props) {
         </div>
       </div>
 
-      {/* Image Preview */}
       {imagePreview && (
         <div style={{
           background: "var(--surface)",
@@ -235,7 +232,6 @@ export function NoticeUploader({ onSubmit, isLoading }: Props) {
         </div>
       )}
 
-      {/* Upload Option Tiles */}
       {!imagePreview && !showTextInput && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <button
@@ -290,7 +286,6 @@ export function NoticeUploader({ onSubmit, isLoading }: Props) {
         </div>
       )}
 
-      {/* Text Input */}
       {showTextInput && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <textarea
@@ -318,14 +313,12 @@ export function NoticeUploader({ onSubmit, isLoading }: Props) {
         </div>
       )}
 
-      {/* OR TRY A SAMPLE divider */}
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <div style={{ flex: 1, height: 1, background: "var(--outline-variant)" }} />
         <span className="text-label-sm" style={{ color: "var(--outline)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Or Try a Sample</span>
         <div style={{ flex: 1, height: 1, background: "var(--outline-variant)" }} />
       </div>
 
-      {/* Sample Cards */}
       <div className="sample-grid" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {SAMPLES.map((s) => (
           <button
@@ -362,7 +355,6 @@ export function NoticeUploader({ onSubmit, isLoading }: Props) {
         ))}
       </div>
 
-      {/* Analyze button — appears when there's input */}
       {(hasInput || showTextInput) && (
         <button
           onClick={handleSubmit}
@@ -398,7 +390,6 @@ export function NoticeUploader({ onSubmit, isLoading }: Props) {
         </button>
       )}
 
-      {/* Hidden file inputs */}
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment"
         style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
       <input ref={fileInputRef} type="file" accept="image/*,application/pdf"

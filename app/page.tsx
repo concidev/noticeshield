@@ -154,7 +154,6 @@ export default function HomePage() {
   return (
     <div className="app-shell" style={{ minHeight: "100vh", background: "var(--bg)", paddingTop: 56, paddingBottom: 80 }}>
 
-      {/* Splash screen */}
       {showSplash && (
         <div style={{
           position: "fixed", inset: 0, zIndex: 999,
@@ -215,7 +214,6 @@ export default function HomePage() {
         Skip to content
       </a>
 
-      {/* Sticky top header */}
       <header style={{
         position: "fixed", top: 0, left: 0, right: 0, zIndex: 40,
         background: "#ffffff",
@@ -229,14 +227,11 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Main content */}
       <main id="main-content" className="app-main" style={{ margin: "0 auto", padding: "24px 20px 16px" }}>
 
-        {/* ── HOME VIEW ── */}
         {view === "home" && (
           <div className="home-view" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
-            {/* Hero card */}
             <section style={{
               background: "var(--surface-low)",
               border: "1px solid var(--outline-variant)",
@@ -298,7 +293,6 @@ export default function HomePage() {
                 </button>
               </div>
 
-              {/* Notice type chips */}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center", marginTop: 4 }}>
                 {["Eviction", "Utility Shutoff", "Benefits Appeal", "Court Summons", "Immigration", "Insurance Denial"].map((label) => (
                   <span key={label} style={{
@@ -310,7 +304,6 @@ export default function HomePage() {
               </div>
             </section>
 
-            {/* How it works */}
             <section style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <h2 className="text-h2" style={{ color: "var(--primary)", margin: 0 }}>How it works</h2>
               <div className="home-steps-grid" style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
@@ -367,7 +360,6 @@ export default function HomePage() {
               </div>
             </section>
 
-            {/* Impact stats */}
             <div style={{
               display: "flex",
               background: "#ffffff",
@@ -393,7 +385,6 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* Mode status card — sits at the bottom as a technical footnote */}
             {(() => {
               const isLive = process.env.NEXT_PUBLIC_GEMMA_LIVE === "true";
               return (
@@ -440,7 +431,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ── UPLOAD VIEW ── */}
         {view === "upload" && (
           <div className="upload-view" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             {isLoading ? (
@@ -471,7 +461,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ── RESULT VIEW ── */}
         {view === "result" && analysis && (
           <div role="region" aria-label="Analysis results" aria-live="polite">
           <ResultDashboard
@@ -486,7 +475,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ── HISTORY VIEW ── */}
         {view === "history" && (
           <div className="history-view" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
@@ -566,7 +554,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ── HELP VIEW ── */}
         {view === "help" && (
           <div className="help-view" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div>
@@ -646,7 +633,6 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* Footer (home only) */}
       {view === "home" && (
         <footer style={{
           background: "#f8fafc", borderTop: "1px solid var(--outline-variant)",

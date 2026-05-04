@@ -27,7 +27,7 @@ Or go to **Upload**, tap any sample notice card, and the full analysis runs auto
 
 ## The Problem
 
-77 million adults in the US struggle to understand official government documents. A tenant who misreads an eviction deadline loses housing. A patient who misses an appeal window pays the full bill. A benefits recipient who doesn't respond in time loses food assistance.
+77 million adults struggle to understand official government documents. A tenant who misreads an eviction deadline loses housing. A patient who misses an appeal window pays the full bill. A benefits recipient who doesn't respond in time loses food assistance.
 
 These documents are designed for administrators, not people under stress.
 
@@ -35,7 +35,7 @@ These documents are designed for administrators, not people under stress.
 
 ## How Gemma 4 Is Used
 
-NoticeShield uses Gemma 4 in three distinct ways:
+NoticeShield uses Gemma 4 in four distinct ways:
 
 ### 1. Structured Document Analysis
 The core analysis prompt asks Gemma to return a strict JSON schema covering urgency, notice type, deadline (ISO date), plain-language summary, risk if ignored, step-by-step next actions, a communication template, and location-aware resource suggestions. The prompt is tuned to Grade 6 reading level, safety-constrained to avoid legal advice, and instructs Gemma to auto-detect non-English notices and translate them automatically.
@@ -80,13 +80,13 @@ GEMMA_API_URL=https://your-gemma-endpoint/v1/chat/completions
 GEMMA_API_KEY=your-private-key
 GEMMA_MODEL=gemma-4-27b-it
 
-# Required for the home screen live/demo indicator
+
 NEXT_PUBLIC_GEMMA_LIVE=true
 ```
 
 Without `GEMMA_API_URL` and `GEMMA_API_KEY`, the app runs in demo mode using pre-built sample responses — the full UI is visible and functional.
 
-> **Vercel deployment:** add all four variables under Project → Settings → Environment Variables.
+
 
 ---
 
@@ -145,4 +145,4 @@ NoticeShield provides general information only — not legal, medical, immigrati
 
 **Gemma 4 technical usage:** Structured JSON extraction, multimodal document input, real-time streaming, conversational follow-up with context injection, multilingual translation — all powered by Gemma 4.
 
-**Completeness:** Fully deployed PWA with live Gemma integration, demo mode for judges without API keys, and end-to-end flows for upload → analysis → translation → sharing → follow-up.
+**Completeness:** Fully deployed PWA with live Gemma integration, and end-to-end flows for upload → analysis → translation → sharing → follow-up.

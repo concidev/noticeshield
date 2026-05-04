@@ -1,16 +1,3 @@
-/**
- * Gemma 4 adapter for NoticeShield.
- *
- * This file is the integration point for Gemma 4 (via Kaggle, local runtime, or a compatible API).
- * In the hackathon MVP, this is wired to the Kaggle / OpenAI-compatible endpoint.
- * For local/private mode, replace GEMMA_API_URL and GEMMA_API_KEY with a local Gemma server.
- *
- * Prompt engineering is designed for Gemma 4's multimodal reasoning capabilities:
- * - Structured JSON output
- * - Multilingual translation
- * - Document understanding (image + text)
- */
-
 import type { LocalResource, NoticeAnalysis, NoticeType, UrgencyLevel, UserLocation } from "./types";
 
 const GEMMA_API_URL = process.env.GEMMA_API_URL ?? "";
@@ -115,8 +102,7 @@ export async function gemmaAnalyze(
       temperature: 0.2,
       max_tokens: 8192,
       stream: !!onToken,
-      // response_format conflicts with streaming on Google AI Studio — only use it in non-streaming mode.
-      // Set GEMMA_JSON_MODE=false to disable entirely.
+      // Google AI Studio rejects response_format on streaming requests.
       ...(!onToken && process.env.GEMMA_JSON_MODE !== "false" ? { response_format: { type: "json_object" } } : {}),
     }),
   });
@@ -129,9 +115,6 @@ export async function gemmaAnalyze(
   let fullContent: string;
 
   if (onToken && response.body) {
-    // ── Streaming mode ──────────────────────────────────────────────────────
-    // Gemma 4 thinking models always start with <thought>...</thought>.
-    // We accumulate everything but only emit visible tokens once past that block.
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buf = "";
@@ -173,7 +156,6 @@ export async function gemmaAnalyze(
       }
     }
   } else {
-    // ── Non-streaming mode ──────────────────────────────────────────────────
     const data = await response.json() as {
       choices?: Array<{ message?: { content?: string } }>;
     };
@@ -181,7 +163,6 @@ export async function gemmaAnalyze(
     if (!fullContent) throw new Error("Empty response from Gemma API");
   }
 
-  // Strip thought tags and code fences before parsing JSON
   const stripped = fullContent
     .replace(/<thought>[\s\S]*?<\/thought>/gi, "")
     .replace(/<thinking>[\s\S]*?<\/thinking>/gi, "")
@@ -189,7 +170,6 @@ export async function gemmaAnalyze(
     .replace(/\s*```$/, "")
     .trim();
 
-  // Extract the outermost JSON object — guards against trailing text or truncation
   const jsonStart = stripped.indexOf("{");
   const jsonEnd = stripped.lastIndexOf("}");
   if (jsonStart === -1 || jsonEnd === -1) {
@@ -396,7 +376,6 @@ Rules:
     const raw = data.choices?.[0]?.message?.content ?? "";
     if (!raw) return { ...analysis, translationLanguage: targetLanguage };
 
-    // Strip thought tags and code fences before parsing
     const cleaned = raw
       .replace(/<thought>[\s\S]*?<\/thought>/gi, "")
       .replace(/<thinking>[\s\S]*?<\/thinking>/gi, "")

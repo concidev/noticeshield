@@ -14,8 +14,6 @@ export async function analyzeNotice(
   request: AnalyzeRequest,
   onToken?: (text: string) => void
 ): Promise<NoticeAnalysis> {
-  // English sample notices: return instantly from cache.
-  // Non-English: fall through to Gemma so it streams + translates correctly.
   if (request.noticeText && !request.imageBase64 && (!request.targetLanguage || request.targetLanguage === "en")) {
     const cached = getCachedAnalysis(request.noticeText, request.location);
     if (cached) return cached;

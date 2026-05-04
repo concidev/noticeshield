@@ -1,9 +1,9 @@
 import type { LocalResource, NoticeType, UserLocation } from "./types";
 
 const PROVINCIAL_LEGAL_AID: Record<string, { label: string; url: string }> = {
-  "Ontario":          { label: "Legal Aid Ontario",  url: "https://www.legalaid.on.ca" },
-  "British Columbia": { label: "Legal Aid BC",        url: "https://lss.bc.ca" },
-  "Alberta":          { label: "Legal Aid Alberta",   url: "https://www.legalaid.ab.ca" },
+  "Ontario": { label: "Legal Aid Ontario", url: "https://www.legalaid.on.ca" },
+  "British Columbia": { label: "Legal Aid BC", url: "https://lss.bc.ca" },
+  "Alberta": { label: "Legal Aid Alberta", url: "https://www.legalaid.ab.ca" },
 };
 
 export function buildLocalResources(type: NoticeType | "general", location?: UserLocation): LocalResource[] {
@@ -11,18 +11,18 @@ export function buildLocalResources(type: NoticeType | "general", location?: Use
   const isCanada = location?.country === "Canada";
 
   const legalLabel = isCanada ? "JusticeNet — Legal Aid Finder" : "LawHelp.org — Legal Aid Finder";
-  const legalUrl   = isCanada ? "https://justicenet.ca"          : "https://www.lawhelp.org";
+  const legalUrl = isCanada ? "https://justicenet.ca" : "https://www.lawhelp.org";
   const legalDetail = isCanada
     ? `Find free or low-cost legal help by province at JusticeNet, serving ${place}.`
     : `Find free or low-cost legal help by state at LawHelp.org, serving ${place}.`;
 
-  const helplineLabel  = isCanada ? "211 Canada"       : "211 Helpline";
-  const helplineUrl    = isCanada ? "https://211canada.ca" : "https://www.211.org";
+  const helplineLabel = isCanada ? "211 Canada" : "211 Helpline";
+  const helplineUrl = isCanada ? "https://211canada.ca" : "https://www.211.org";
   const helplineDetail = `Call or search ${helplineLabel} for housing, food, utility, and crisis support near ${place}.`;
 
   const resources: LocalResource[] = [
     { label: helplineLabel, detail: helplineDetail, category: "general", url: helplineUrl },
-    { label: legalLabel,    detail: legalDetail,    category: "legal",   url: legalUrl },
+    { label: legalLabel, detail: legalDetail, category: "legal", url: legalUrl },
   ];
 
   const provincial = isCanada && location?.region ? PROVINCIAL_LEGAL_AID[location.region] : undefined;

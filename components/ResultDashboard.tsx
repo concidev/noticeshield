@@ -121,8 +121,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
   const [translating, setTranslating] = useState(false);
   const [translateError, setTranslateError] = useState<string | null>(null);
   const [translated, setTranslated] = useState<NoticeAnalysis | null>(null);
-
-  // QR code
   const [showQR, setShowQR] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
@@ -151,7 +149,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
     }).catch(() => setQrDataUrl(null));
   }, [showQR, qrDataUrl, analysis]);
 
-  // Follow-up Q&A
   const [qaHistory, setQaHistory] = useState<Array<{ question: string; answer: string }>>([]);
   const [currentQuestion, setCurrentQuestion] = useState("");
   const [answering, setAnswering] = useState(false);
@@ -262,10 +259,10 @@ export function ResultDashboard({ analysis, onReset }: Props) {
 
   const isCanada = analysis.locationLabel?.includes(", Canada") ?? false;
   const borderColor = BORDER_COLORS[analysis.urgency] ?? "var(--primary)";
-  const legalUrl   = isCanada ? "https://justicenet.ca"     : "https://www.lawhelp.org";
+  const legalUrl = isCanada ? "https://justicenet.ca" : "https://www.lawhelp.org";
   const legalLabel = isCanada ? "Find Legal Aid (JusticeNet)" : "Find Legal Aid (LawHelp.org)";
-  const helpUrl    = isCanada ? "https://211canada.ca"      : "https://www.211.org";
-  const helpLabel  = isCanada ? "Search 211 Canada for Local Help" : "Search 211 for Local Help";
+  const helpUrl = isCanada ? "https://211canada.ca" : "https://www.211.org";
+  const helpLabel = isCanada ? "Search 211 Canada for Local Help" : "Search 211 for Local Help";
 
   const toggleStep = (i: number) => {
     setCheckedSteps((prev) => {
@@ -281,8 +278,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
 
   return (
     <div className="result-dashboard" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-      {/* QR Code Modal */}
       {showQR && (
         <div
           onClick={() => setShowQR(false)}
@@ -340,8 +335,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           </div>
         </div>
       )}
-
-      {/* Emergency escalation — critical notices only */}
       {analysis.urgency === "critical" && (
         <div style={{
           background: "linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%)",
@@ -404,8 +397,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           </div>
         </div>
       )}
-
-      {/* URGENT banner */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
         background: "var(--error-container)",
@@ -422,8 +413,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           {analysis.deadline ? ` · ${analysis.deadline}` : ""}
         </span>
       </div>
-
-      {/* Header: notice type + mode indicator */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <UrgencyBadge urgency={analysis.urgency} />
@@ -431,8 +420,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
         </div>
         <ModeIndicator mode={analysis.analysisMode} />
       </div>
-
-      {/* Key details 2-column grid */}
       <div className="result-details-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div style={{
           background: "var(--surface)", border: "1px solid var(--outline-variant)",
@@ -477,8 +464,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           </div>
         </div>
       )}
-
-      {/* What this means — border-l-primary */}
       <div style={{
         background: "var(--surface)", border: "1px solid var(--outline-variant)",
         borderLeft: `4px solid var(--primary)`,
@@ -497,8 +482,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           {display.summary}
         </p>
       </div>
-
-      {/* Risk of Ignoring — border-l-error */}
       <div style={{
         background: "var(--surface)", border: "1px solid var(--error)",
         borderLeft: `4px solid var(--error)`,
@@ -513,8 +496,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           {display.riskIfIgnored}
         </p>
       </div>
-
-      {/* Action Plan — checklist */}
       <div
         role="region"
         aria-label="Required action steps"
@@ -560,8 +541,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           })}
         </div>
       </div>
-
-      {/* Safety checkpoint */}
       <div style={{
         background: "var(--surface-container)",
         border: "1px solid var(--outline-variant)",
@@ -580,8 +559,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           </p>
         </div>
       </div>
-
-      {/* Communication Assistant */}
       {display.suggestedMessage && (
         <div style={{
           background: "var(--surface-low)", border: "1px solid var(--outline-variant)",
@@ -639,8 +616,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           </div>
         </div>
       )}
-
-      {/* Translation */}
       {display.translation && (
         <div style={{ background: "var(--surface)", border: "1px solid var(--outline-variant)", borderRadius: 8, overflow: "hidden" }}>
           <div style={{ padding: "12px 16px", background: "var(--surface-low)", borderBottom: "1px solid var(--outline-variant)", display: "flex", alignItems: "center", gap: 8 }}>
@@ -654,8 +629,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           </div>
         </div>
       )}
-
-      {/* Human Help */}
       <div style={{
         background: "var(--surface)", border: "1px solid var(--outline-variant)",
         borderRadius: 8, padding: 20,
@@ -732,8 +705,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           </a>
         </div>
       </div>
-
-      {/* Follow-up Q&A */}
       <div style={{
         background: "var(--surface)", border: "1px solid var(--outline-variant)",
         borderLeft: "4px solid var(--primary)",
@@ -745,8 +716,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           <h2 className="text-h2" style={{ margin: 0 }}>Ask about this notice</h2>
         </div>
         <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-
-          {/* Suggested questions */}
           {qaHistory.length === 0 && !answering && (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {(SUGGESTED_QUESTIONS[analysis.noticeType] ?? DEFAULT_QUESTIONS).map((q) => (
@@ -766,8 +735,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
               ))}
             </div>
           )}
-
-          {/* Past Q&A */}
           {qaHistory.map((item, i) => (
             <div key={i} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
@@ -791,8 +758,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
               {i < qaHistory.length - 1 && <div style={{ borderTop: "1px solid var(--outline-variant)", margin: "4px 0" }} />}
             </div>
           ))}
-
-          {/* Streaming answer in progress */}
           {answering && (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {qaHistory.length > 0 && <div style={{ borderTop: "1px solid var(--outline-variant)", margin: "4px 0" }} />}
@@ -818,8 +783,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           {qaError && (
             <p className="text-body-md" style={{ color: "var(--error)", margin: 0 }}>{qaError}</p>
           )}
-
-          {/* Input row */}
           <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
             <input
               type="text"
@@ -859,11 +822,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           </p>
         </div>
       </div>
-
-      {/* Disclaimer */}
       <DisclaimerCard text={analysis.disclaimer} />
-
-      {/* Translate Report */}
       <div style={{
         background: "var(--surface)", border: "1px solid var(--outline-variant)",
         borderRadius: 8, padding: 20,
@@ -957,8 +916,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           <p className="text-body-md" style={{ color: "var(--error)", margin: "10px 0 0" }}>{translateError}</p>
         )}
       </div>
-
-      {/* Share + Download row */}
       <button
         onClick={() => { setShowQR(true); setQrDataUrl(null); }}
         aria-label="Show QR code to share action plan with an advocate"
@@ -996,8 +953,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           Share Action Plan
         </button>
       )}
-
-      {/* Download Action Plan */}
       <button
         onClick={handleDownload}
         disabled={downloading}
@@ -1031,8 +986,6 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           </>
         )}
       </button>
-
-      {/* Back button */}
       <button
         onClick={onReset}
         className="btn-secondary"
