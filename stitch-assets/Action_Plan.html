@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NoticeShield - Action Plan</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary": "#313436",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary-fixed": "#001c37",
+                    "background": "#f8f9ff",
+                    "error-container": "#ffdad6",
+                    "tertiary-container": "#474b4d",
+                    "on-tertiary-fixed": "#191c1e",
+                    "error": "#ba1a1a",
+                    "secondary-fixed": "#98f1fa",
+                    "on-surface": "#0d1c2f",
+                    "primary-fixed-dim": "#a0c9ff",
+                    "surface-container-low": "#eff4ff",
+                    "on-surface-variant": "#42474f",
+                    "surface-bright": "#f8f9ff",
+                    "inverse-surface": "#233144",
+                    "primary-container": "#0f4c81",
+                    "secondary-container": "#98f1fa",
+                    "on-secondary-container": "#006f78",
+                    "secondary-fixed-dim": "#7cd4de",
+                    "inverse-on-surface": "#ebf1ff",
+                    "surface-dim": "#ccdbf4",
+                    "tertiary-fixed-dim": "#c4c7c9",
+                    "surface-variant": "#d5e3fd",
+                    "surface-container": "#e6eeff",
+                    "on-secondary": "#ffffff",
+                    "on-error": "#ffffff",
+                    "primary-fixed": "#d2e4ff",
+                    "on-primary-fixed-variant": "#07497d",
+                    "on-tertiary-fixed-variant": "#444749",
+                    "surface-container-high": "#dde9ff",
+                    "tertiary-fixed": "#e0e3e5",
+                    "surface-container-highest": "#d5e3fd",
+                    "outline-variant": "#c2c7d1",
+                    "on-secondary-fixed-variant": "#004f55",
+                    "on-primary": "#ffffff",
+                    "surface": "#f8f9ff",
+                    "on-tertiary-container": "#b8bbbc",
+                    "secondary": "#006971",
+                    "inverse-primary": "#a0c9ff",
+                    "on-primary-container": "#8ebdf9",
+                    "on-tertiary": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "on-background": "#0d1c2f",
+                    "on-secondary-fixed": "#002023",
+                    "surface-tint": "#2d6197",
+                    "outline": "#727780",
+                    "primary": "#00355f"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "base": "4px",
+                    "margin-mobile": "20px",
+                    "gutter-mobile": "16px",
+                    "stack-md": "16px",
+                    "stack-lg": "24px",
+                    "stack-sm": "8px",
+                    "touch-target": "48px"
+            },
+            "fontFamily": {
+                    "body-md": ["Public Sans", "sans-serif"],
+                    "label-sm": ["Public Sans", "sans-serif"],
+                    "display": ["Public Sans", "sans-serif"],
+                    "h2": ["Public Sans", "sans-serif"],
+                    "h1": ["Public Sans", "sans-serif"],
+                    "body-lg": ["Public Sans", "sans-serif"],
+                    "label-md": ["Public Sans", "sans-serif"]
+            },
+            "fontSize": {
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "500"}],
+                    "display": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "h2": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "h1": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md text-body-md antialiased md:hidden pb-safe">
+<!-- TopAppBar (Task-Focused - Minimal variant since it's a specific flow step, but using JSON specs) -->
+<header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flat no shadows flex justify-between items-center w-full px-5 py-3 sticky top-0 z-50">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-blue-800 dark:text-blue-400">shield</span>
+<span class="text-lg font-black text-blue-900 dark:text-blue-100 font-public-sans tracking-tight">NoticeShield</span>
+</div>
+<div>
+<span class="font-public-sans text-sm font-semibold tracking-tight text-blue-800 dark:text-blue-400">Offline</span>
+</div>
+</header>
+<main class="px-margin-mobile pt-stack-md pb-stack-lg space-y-stack-lg">
+<!-- Urgency / Header Section -->
+<section>
+<div class="bg-error-container text-on-error-container rounded-lg p-stack-sm mb-stack-sm flex items-center gap-2 w-max">
+<span class="material-symbols-outlined font-bold" style="font-variation-settings: 'FILL' 1;">timer</span>
+<span class="font-label-md text-label-md">Deadline: 3 Days</span>
+</div>
+<h1 class="font-h1 text-h1 text-on-background mb-stack-sm">Action Plan</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Complete these steps to respond to your housing notice.</p>
+</section>
+<!-- Step-by-Step Checklist (Notice Card Style) -->
+<section class="bg-surface-container-lowest border border-[#E2E8F0] border-l-[4px] border-l-secondary rounded-lg p-stack-md shadow-[0_4px_8px_rgba(0,53,95,0.05)]">
+<h2 class="font-h2 text-h2 mb-stack-md flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">checklist</span>
+                Required Steps
+            </h2>
+<div class="space-y-stack-md">
+<!-- Step 1 -->
+<div class="flex items-start gap-gutter-mobile">
+<div class="flex-shrink-0 h-touch-target flex items-center">
+<input class="w-6 h-6 rounded border-outline-variant text-primary focus:ring-primary focus:ring-2" type="checkbox"/>
+</div>
+<div class="pt-2">
+<span class="font-label-sm text-label-sm bg-surface-variant text-primary px-2 py-1 rounded-full mb-1 inline-block">Document Prep</span>
+<h3 class="font-label-md text-label-md text-on-surface">Gather Proof of Payment</h3>
+<p class="text-sm text-on-surface-variant mt-1">Collect bank statements or receipts from the last 3 months.</p>
+</div>
+</div>
+<!-- Step 2 -->
+<div class="flex items-start gap-gutter-mobile">
+<div class="flex-shrink-0 h-touch-target flex items-center">
+<input class="w-6 h-6 rounded border-outline-variant text-primary focus:ring-primary focus:ring-2" type="checkbox"/>
+</div>
+<div class="pt-2">
+<span class="font-label-sm text-label-sm bg-surface-variant text-primary px-2 py-1 rounded-full mb-1 inline-block">Communication</span>
+<h3 class="font-label-md text-label-md text-on-surface">Contact Housing Office</h3>
+<p class="text-sm text-on-surface-variant mt-1">Call them during business hours to request an extension.</p>
+</div>
+</div>
+<!-- Step 3 -->
+<div class="flex items-start gap-gutter-mobile">
+<div class="flex-shrink-0 h-touch-target flex items-center">
+<input class="w-6 h-6 rounded border-outline-variant text-primary focus:ring-primary focus:ring-2" type="checkbox"/>
+</div>
+<div class="pt-2">
+<span class="font-label-sm text-label-sm bg-error-container text-on-error-container px-2 py-1 rounded-full mb-1 inline-block">High Priority</span>
+<h3 class="font-label-md text-label-md text-on-surface">Call Legal Aid</h3>
+<p class="text-sm text-on-surface-variant mt-1">Schedule a free consultation immediately.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Communication Assistant -->
+<section class="bg-surface-container-low rounded-lg p-stack-md border border-[#E2E8F0]">
+<h2 class="font-h2 text-h2 mb-stack-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">chat_bubble</span>
+                Communication Assistant
+            </h2>
+<p class="text-sm text-on-surface-variant mb-stack-md">Use this generated message to contact your housing office.</p>
+<div class="bg-surface-container-lowest p-stack-md rounded border border-outline-variant relative">
+<p class="font-body-md text-body-md text-on-surface whitespace-pre-wrap">Dear Housing Office,
+
+I am writing regarding the recent notice I received concerning my unit. I am gathering the requested documentation and would like to formally request a brief extension to submit my proof of payment. 
+
+Please advise on the next steps.
+
+Thank you.</p>
+<button class="absolute bottom-2 right-2 flex items-center gap-1 bg-surface-variant text-primary hover:bg-surface-dim px-3 py-2 rounded-md transition-colors text-sm font-medium">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+                    Copy
+                </button>
+</div>
+</section>
+<!-- Human Help -->
+<section class="bg-surface-container-lowest border border-[#E2E8F0] rounded-lg p-stack-md shadow-sm">
+<h2 class="font-h2 text-h2 mb-stack-md flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">support_agent</span>
+                Human Help
+            </h2>
+<div class="space-y-stack-sm">
+<button class="w-full h-touch-target border border-primary text-primary rounded-lg font-label-md text-label-md flex items-center justify-center gap-2 hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined">call</span>
+                    Local Legal Aid (1-800-555-0199)
+                </button>
+<button class="w-full h-touch-target bg-primary text-on-primary rounded-lg font-label-md text-label-md flex items-center justify-center gap-2 hover:bg-on-primary-fixed-variant transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
+                    Book Advocate Appointment
+                </button>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-slate-50 dark:bg-slate-950 full-width mb-16 bg-slate-100 dark:bg-slate-900 flat flex flex-col items-center justify-center w-full px-10 py-6 gap-2">
+<p class="font-public-sans text-[10px] text-center leading-relaxed text-slate-600 dark:text-slate-400">NoticeShield Disclaimer: Verify all data with official government sources. Local Mode enabled.</p>
+<div class="flex gap-4 mt-2">
+<a class="font-public-sans text-[10px] text-center leading-relaxed text-slate-500 dark:text-slate-500 hover:text-blue-900 dark:hover:text-white opacity-80 hover:opacity-100 transition-opacity" href="#">Terms</a>
+<a class="font-public-sans text-[10px] text-center leading-relaxed text-slate-500 dark:text-slate-500 hover:text-blue-900 dark:hover:text-white opacity-80 hover:opacity-100 transition-opacity" href="#">Privacy</a>
+</div>
+</footer>
+<!-- BottomNavBar (Suppressed intentionally as per rules: This is a Task-Focused step-by-step screen, acting as a sub-page of Home/Dashboard, not a top-level destination) -->
+<!-- Navigation shell suppressed to prioritize content canvas for the action plan -->
+</body></html>

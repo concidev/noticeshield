@@ -1,0 +1,301 @@
+@import "tailwindcss";
+
+:root {
+  /* Civic Guardian Design System — color tokens */
+  --bg:                    #f8f9ff;
+  --surface:               #ffffff;
+  --surface-low:           #eff4ff;
+  --surface-container:     #e6eeff;
+  --surface-container-high:#dde9ff;
+  --surface-container-highest:#d5e3fd;
+  --on-surface:            #0d1c2f;
+  --on-surface-variant:    #42474f;
+  --outline:               #727780;
+  --outline-variant:       #c2c7d1;
+  --primary:               #00355f;
+  --primary-container:     #0f4c81;
+  --on-primary:            #ffffff;
+  --on-primary-container:  #8ebdf9;
+  --secondary:             #006971;
+  --secondary-container:   #98f1fa;
+  --on-secondary:          #ffffff;
+  --on-secondary-container:#006f78;
+  --error:                 #ba1a1a;
+  --error-container:       #ffdad6;
+  --on-error-container:    #93000a;
+  --inverse-surface:       #233144;
+  --inverse-on-surface:    #ebf1ff;
+
+  /* Material Design tonal surfaces */
+  --primary-fixed:          #d2e4ff;
+  --secondary-fixed:        #98f1fa;
+  --on-primary-fixed:       #001c37;
+  --on-primary-fixed-variant:#07497d;
+  --surface-variant:        #d5e3fd;
+
+  /* Urgency status colors */
+  --urgent:   #ba1a1a;
+  --warning:  #b45309;
+  --notice:   #0f4c81;
+  --safe:     #006971;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+  color: var(--on-surface);
+  font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--bg);
+  margin: 0;
+  min-height: 100vh;
+}
+
+.app-main {
+  max-width: 560px;
+  width: 100%;
+}
+
+/* Typography scale */
+.text-display {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 38px;
+  letter-spacing: -0.02em;
+}
+.text-h1 {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: -0.01em;
+}
+.text-h2 {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+}
+.text-body-lg {
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 28px;
+}
+.text-body-md {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+}
+.text-label-md {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+}
+.text-label-sm {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.04em;
+}
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+}
+
+/* Left-border urgency cards */
+.notice-card-critical {
+  border-left: 4px solid var(--urgent);
+}
+.notice-card-high {
+  border-left: 4px solid var(--warning);
+}
+.notice-card-medium {
+  border-left: 4px solid var(--notice);
+}
+.notice-card-low {
+  border-left: 4px solid var(--safe);
+}
+
+/* Primary button */
+.btn-primary {
+  background: var(--primary);
+  color: var(--on-primary);
+  height: 48px;
+  border-radius: 8px;
+  font-family: 'Public Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+.btn-primary:hover {
+  background: var(--primary-container);
+}
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Secondary button */
+.btn-secondary {
+  background: transparent;
+  color: var(--primary);
+  height: 48px;
+  border-radius: 8px;
+  font-family: 'Public Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  border: 1.5px solid var(--primary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-secondary:hover {
+  background: var(--surface-low);
+}
+
+/* Focus ring */
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (min-width: 760px) {
+  .app-shell {
+    padding-bottom: 96px !important;
+  }
+
+  .app-main {
+    max-width: 760px;
+    padding: 32px 28px 24px !important;
+  }
+
+  .home-steps-grid,
+  .history-grid,
+  .sample-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .uploader-controls {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr) !important;
+    align-items: stretch;
+  }
+
+  .language-card {
+    min-height: 100%;
+  }
+
+  .bottom-nav {
+    left: 50% !important;
+    right: auto !important;
+    bottom: 16px !important;
+    width: min(560px, calc(100% - 48px)) !important;
+    transform: translateX(-50%);
+    border: 1px solid var(--outline-variant) !important;
+    border-radius: 16px;
+    box-shadow: 0 12px 32px rgba(0, 53, 95, 0.12);
+  }
+}
+
+@media (min-width: 1040px) {
+  .app-main {
+    max-width: 1040px;
+    padding-top: 40px !important;
+  }
+
+  .home-view,
+  .upload-view,
+  .history-view,
+  .help-view,
+  .result-dashboard {
+    max-width: 920px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .home-steps-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .history-grid,
+  .sample-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .help-view {
+    max-width: 960px;
+  }
+
+  .help-view > div:not(:first-child) {
+    max-width: 100%;
+  }
+
+  .result-dashboard {
+    max-width: 920px;
+  }
+
+  .result-details-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 1220px) {
+  .app-main {
+    max-width: 1120px;
+  }
+
+  .help-view {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .help-view > div:first-child,
+  .help-view > div:nth-child(2),
+  .help-view > div:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 420px) {
+  .text-display {
+    font-size: 28px;
+    line-height: 36px;
+  }
+
+  .bottom-nav button {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.7; transform: scale(1.15); }
+}
+
+@keyframes shieldPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(152,241,250,0.35); transform: scale(1); }
+  50%  { box-shadow: 0 0 0 20px rgba(152,241,250,0);  transform: scale(1.06); }
+  100% { box-shadow: 0 0 0 0 rgba(152,241,250,0);     transform: scale(1); }
+}
+
+@keyframes splashFadeIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}

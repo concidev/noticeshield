@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NoticeShield - Home</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary": "#313436",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-fixed": "#001c37",
+                      "background": "#f8f9ff",
+                      "error-container": "#ffdad6",
+                      "tertiary-container": "#474b4d",
+                      "on-tertiary-fixed": "#191c1e",
+                      "error": "#ba1a1a",
+                      "secondary-fixed": "#98f1fa",
+                      "on-surface": "#0d1c2f",
+                      "primary-fixed-dim": "#a0c9ff",
+                      "surface-container-low": "#eff4ff",
+                      "on-surface-variant": "#42474f",
+                      "surface-bright": "#f8f9ff",
+                      "inverse-surface": "#233144",
+                      "primary-container": "#0f4c81",
+                      "secondary-container": "#98f1fa",
+                      "on-secondary-container": "#006f78",
+                      "secondary-fixed-dim": "#7cd4de",
+                      "inverse-on-surface": "#ebf1ff",
+                      "surface-dim": "#ccdbf4",
+                      "tertiary-fixed-dim": "#c4c7c9",
+                      "surface-variant": "#d5e3fd",
+                      "surface-container": "#e6eeff",
+                      "on-secondary": "#ffffff",
+                      "on-error": "#ffffff",
+                      "primary-fixed": "#d2e4ff",
+                      "on-primary-fixed-variant": "#07497d",
+                      "on-tertiary-fixed-variant": "#444749",
+                      "surface-container-high": "#dde9ff",
+                      "tertiary-fixed": "#e0e3e5",
+                      "surface-container-highest": "#d5e3fd",
+                      "outline-variant": "#c2c7d1",
+                      "on-secondary-fixed-variant": "#004f55",
+                      "on-primary": "#ffffff",
+                      "surface": "#f8f9ff",
+                      "on-tertiary-container": "#b8bbbc",
+                      "secondary": "#006971",
+                      "inverse-primary": "#a0c9ff",
+                      "on-primary-container": "#8ebdf9",
+                      "on-tertiary": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "on-background": "#0d1c2f",
+                      "on-secondary-fixed": "#002023",
+                      "surface-tint": "#2d6197",
+                      "outline": "#727780",
+                      "primary": "#00355f"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "base": "4px",
+                      "margin-mobile": "20px",
+                      "gutter-mobile": "16px",
+                      "stack-md": "16px",
+                      "stack-lg": "24px",
+                      "stack-sm": "8px",
+                      "touch-target": "48px"
+              },
+              "fontFamily": {
+                      "body-md": [
+                              "Public Sans"
+                      ],
+                      "label-sm": [
+                              "Public Sans"
+                      ],
+                      "display": [
+                              "Public Sans"
+                      ],
+                      "h2": [
+                              "Public Sans"
+                      ],
+                      "h1": [
+                              "Public Sans"
+                      ],
+                      "body-lg": [
+                              "Public Sans"
+                      ],
+                      "label-md": [
+                              "Public Sans"
+                      ]
+              },
+              "fontSize": {
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.04em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "display": [
+                              "30px",
+                              {
+                                      "lineHeight": "38px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "h2": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "h1": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen flex flex-col pt-16 pb-20 md:pb-0">
+<!-- TopAppBar -->
+<header class="bg-white dark:bg-slate-900 font-public-sans text-sm font-semibold tracking-tight docked full-width top-0 border-b border-slate-200 dark:border-slate-800 flat no shadows flex justify-between items-center w-full px-5 py-3 fixed z-50">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-blue-800 dark:text-blue-400">shield</span>
+<span class="text-lg font-black text-blue-900 dark:text-blue-100">NoticeShield</span>
+</div>
+<div class="hidden md:flex items-center gap-6">
+<a class="text-blue-900 dark:text-blue-100 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-transform duration-150 px-3 py-2 rounded-md" href="#">Home</a>
+<a class="text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-transform duration-150 px-3 py-2 rounded-md" href="#">Upload</a>
+<a class="text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-transform duration-150 px-3 py-2 rounded-md" href="#">History</a>
+<a class="text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-transform duration-150 px-3 py-2 rounded-md" href="#">Help</a>
+</div>
+<div class="text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-transform duration-150 flex items-center gap-1 cursor-pointer">
+<span class="material-symbols-outlined">action_key</span>
+<span class="text-blue-800 dark:text-blue-400">Offline</span>
+</div>
+</header>
+<main class="flex-grow px-margin-mobile md:px-8 max-w-7xl mx-auto w-full flex flex-col gap-stack-lg mt-8">
+<!-- Hero Section -->
+<section class="bg-surface-container-low rounded-xl p-8 flex flex-col items-center text-center gap-stack-md border border-outline-variant shadow-[0_4px_24px_rgba(0,53,95,0.05)]">
+<h1 class="font-display text-display text-primary max-w-2xl">
+                Know the deadline.<br/>Know the risk.<br/>Know what to do next.
+            </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-xl">
+                Securely scan and analyze official notices locally on your device. Get clear, actionable steps without compromising your privacy.
+            </p>
+<button class="h-touch-target bg-primary text-on-primary rounded-lg px-8 font-label-md text-label-md flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors mt-4 shadow-[0_8px_16px_rgba(0,53,95,0.15)]">
+<span class="material-symbols-outlined">document_scanner</span>
+                Scan or Upload Notice
+            </button>
+</section>
+<!-- Status Card -->
+<section class="bg-surface-container-lowest border-l-[4px] border-l-secondary rounded-lg p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-outline-variant/30 flex items-center justify-between gap-4">
+<div class="flex items-center gap-4">
+<div class="bg-secondary-container text-on-secondary-container p-3 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">shield_lock</span>
+</div>
+<div>
+<h2 class="font-h2 text-h2 text-on-surface">Local Mode Active</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Your app is ready for private analysis. No data leaves your device.</p>
+</div>
+</div>
+<div class="hidden sm:block">
+<span class="bg-secondary-container text-on-secondary-container font-label-sm text-label-sm px-3 py-1 rounded-full uppercase">Secure</span>
+</div>
+</section>
+<!-- How It Works (Bento Grid) -->
+<section class="flex flex-col gap-stack-md mt-4">
+<h2 class="font-h2 text-h2 text-primary">How it works</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Step 1 -->
+<div class="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-6 flex flex-col gap-4 relative overflow-hidden group">
+<div class="absolute top-0 right-0 w-24 h-24 bg-primary-fixed/30 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+<div class="bg-primary-container text-on-primary-container w-12 h-12 rounded-lg flex items-center justify-center relative z-10 shadow-[0_4px_12px_rgba(15,76,129,0.2)]">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">cloud_upload</span>
+</div>
+<div class="relative z-10">
+<span class="font-label-sm text-label-sm text-primary mb-1 block">Step 1</span>
+<h3 class="font-h2 text-h2 text-on-surface mb-2">Upload Notice</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Take a photo or upload a PDF of the official document you received.</p>
+</div>
+</div>
+<!-- Step 2 -->
+<div class="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-6 flex flex-col gap-4 relative overflow-hidden group">
+<div class="absolute top-0 right-0 w-24 h-24 bg-secondary-fixed/30 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+<div class="bg-secondary-container text-on-secondary-container w-12 h-12 rounded-lg flex items-center justify-center relative z-10 shadow-[0_4px_12px_rgba(0,105,113,0.2)]">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">memory</span>
+</div>
+<div class="relative z-10">
+<span class="font-label-sm text-label-sm text-secondary mb-1 block">Step 2</span>
+<h3 class="font-h2 text-h2 text-on-surface mb-2">AI Analysis</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Our secure local AI extracts deadlines, requirements, and potential risks.</p>
+</div>
+</div>
+<!-- Step 3 -->
+<div class="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-6 flex flex-col gap-4 relative overflow-hidden group">
+<div class="absolute top-0 right-0 w-24 h-24 bg-error-container/30 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+<div class="bg-primary text-on-primary w-12 h-12 rounded-lg flex items-center justify-center relative z-10 shadow-[0_4px_12px_rgba(0,53,95,0.2)]">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">task_alt</span>
+</div>
+<div class="relative z-10">
+<span class="font-label-sm text-label-sm text-primary mb-1 block">Step 3</span>
+<h3 class="font-h2 text-h2 text-on-surface mb-2">Action Plan</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Receive a clear, step-by-step guide on what actions you need to take and by when.</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Mobile) -->
+<nav class="md:hidden bg-white dark:bg-slate-900 font-public-sans text-[11px] font-medium leading-none text-blue-900 fixed bottom-0 w-full z-50 border-t border-slate-200 dark:border-slate-800 flat no shadows flex justify-around items-center h-16 px-2 pb-safe">
+<!-- Active -->
+<a class="flex flex-col items-center justify-center bg-blue-50 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100 rounded-lg py-1.5 px-3 hover:text-blue-700 dark:hover:text-blue-300 active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">home</span>
+            Home
+        </a>
+<!-- Inactive -->
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 py-1.5 px-3 hover:text-blue-700 dark:hover:text-blue-300 active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined mb-1">cloud_upload</span>
+            Upload
+        </a>
+<!-- Inactive -->
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 py-1.5 px-3 hover:text-blue-700 dark:hover:text-blue-300 active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined mb-1">history</span>
+            History
+        </a>
+<!-- Inactive -->
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 py-1.5 px-3 hover:text-blue-700 dark:hover:text-blue-300 active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined mb-1">help</span>
+            Help
+        </a>
+</nav>
+<!-- Footer -->
+<footer class="bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 font-public-sans text-[10px] text-center leading-relaxed text-blue-900 full-width mb-16 bg-slate-100 dark:bg-slate-900 flat flex flex-col items-center justify-center px-10 py-6 gap-2 mt-auto">
+<p>NoticeShield Disclaimer: Verify all data with official government sources. Local Mode enabled.</p>
+<div class="flex gap-4">
+<a class="text-slate-500 dark:text-slate-500 hover:text-blue-900 dark:hover:text-white opacity-80 hover:opacity-100 transition-opacity" href="#">Terms</a>
+<a class="text-slate-500 dark:text-slate-500 hover:text-blue-900 dark:hover:text-white opacity-80 hover:opacity-100 transition-opacity" href="#">Privacy</a>
+</div>
+</footer>
+</body></html>

@@ -1,0 +1,1047 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import type { NoticeAnalysis } from "@/lib/types";
+
+const TRANSLATE_LANGUAGES = [
+  { code: "es", label: "Español (Spanish)" },
+  { code: "fr", label: "Français (French)" },
+  { code: "zh", label: "中文 (Chinese)" },
+  { code: "ar", label: "العربية (Arabic)" },
+  { code: "pt", label: "Português (Portuguese)" },
+  { code: "hi", label: "हिन्दी (Hindi)" },
+  { code: "ru", label: "Русский (Russian)" },
+  { code: "vi", label: "Tiếng Việt (Vietnamese)" },
+  { code: "ko", label: "한국어 (Korean)" },
+  { code: "tl", label: "Filipino (Tagalog)" },
+  { code: "so", label: "Somali" },
+];
+import { UrgencyBadge } from "./UrgencyBadge";
+import { ModeIndicator } from "./ModeIndicator";
+import { DisclaimerCard } from "./DisclaimerCard";
+import { downloadActionPlan } from "@/lib/generatePdf";
+
+interface Props {
+  analysis: NoticeAnalysis;
+  onReset: () => void;
+}
+
+function DeadlineCountdown({ deadlineDate }: { deadlineDate: string | null }) {
+  if (!deadlineDate) return null;
+  // Parse as local noon to avoid UTC-offset shifting the date by a day
+  const [y, m, d] = deadlineDate.split("-").map(Number);
+  const target = new Date(y, (m ?? 1) - 1, d ?? 1, 12, 0, 0);
+  const diffMs = target.getTime() - Date.now();
+  const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  const [label, color, bg] =
+    days < 0   ? ["OVERDUE",       "#dc2626", "#fee2e2"] :
+    days === 0 ? ["Due today",     "#dc2626", "#fee2e2"] :
+    days <= 3  ? [`${days}d left`, "#dc2626", "#fee2e2"] :
+    days <= 7  ? [`${days}d left`, "#854d0e", "#fef9c3"] :
+                 [`${days}d left`, "var(--secondary)", "var(--secondary-container)"];
+  return (
+    <span style={{
+      display: "inline-block", background: bg, color,
+      fontWeight: 800, fontSize: 12,
+      padding: "3px 10px", borderRadius: 9999,
+      letterSpacing: "0.04em", textTransform: "uppercase", marginTop: 6,
+    }}>
+      {label}
+    </span>
+  );
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      style={{
+        display: "flex", alignItems: "center", gap: 4,
+        background: copied ? "var(--secondary-container)" : "var(--surface-variant)",
+        color: copied ? "var(--secondary)" : "var(--primary)",
+        border: "none", borderRadius: 6,
+        padding: "6px 12px", cursor: "pointer",
+        fontSize: 13, fontWeight: 600, fontFamily: "inherit",
+        transition: "all 0.15s",
+      }}
+    >
+      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+        {copied ? "check" : "content_copy"}
+      </span>
+      {copied ? "Copied" : "Copy"}
+    </button>
+  );
+}
+
+const SUGGESTED_QUESTIONS: Partial<Record<string, string[]>> = {
+  eviction:       ["Do I have to leave immediately?",           "Can I negotiate with my landlord?",        "What are my rights as a tenant?"],
+  rent_arrears:   ["Can I set up a payment plan?",              "What if I can only pay part of the amount?","Who can help me find emergency rent assistance?"],
+  utility_shutoff:["Can they disconnect without more notice?",  "What if I have medical equipment at home?", "Are there emergency assistance programs?"],
+  court_hearing:  ["What if I can't appear on that date?",      "Do I need a lawyer for this?",              "What happens if I don't show up?"],
+  benefits:       ["Can I keep my benefits while I appeal?",    "How long does an appeal take?",             "What documents do I need for my appeal?"],
+  immigration:    ["Should I get a lawyer right away?",         "What happens if I miss the 60-day window?", "Can I stay in the US while I appeal?"],
+  healthcare:     ["How do I write an appeal letter?",          "What if the first appeal is denied?",       "Are there free patient advocates?"],
+  boil_water:     ["How long will this advisory last?",         "Is it safe to shower or bathe?",            "What about my pets and plants?"],
+  evacuation:     ["Where should I go right now?",              "What if I have no transportation?",         "Can I bring my pets?"],
+};
+const DEFAULT_QUESTIONS = ["What should I do first?", "Can I appeal this decision?", "Where can I get free help?"];
+
+const URGENCY_LABELS: Record<string, string> = {
+  critical: "CRITICAL",
+  high: "HIGH RISK",
+  medium: "IMPORTANT",
+  low: "LOW PRIORITY",
+};
+
+const BORDER_COLORS: Record<string, string> = {
+  critical: "var(--urgent)",
+  high:     "var(--warning)",
+  medium:   "var(--notice)",
+  low:      "var(--safe)",
+};
+
+const STEP_TAGS: Array<{ label: string; color: string; bg: string }> = [
+  { label: "Document Prep", color: "var(--primary)", bg: "var(--surface-variant)" },
+  { label: "Communication", color: "var(--primary)", bg: "var(--surface-variant)" },
+  { label: "High Priority", color: "var(--on-error-container)", bg: "var(--error-container)" },
+  { label: "Legal Step", color: "var(--primary)", bg: "var(--surface-variant)" },
+  { label: "Financial", color: "var(--warning)", bg: "#fef9c3" },
+];
+
+export function ResultDashboard({ analysis, onReset }: Props) {
+  const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
+  const [downloading, setDownloading] = useState(false);
+  const [translateLang, setTranslateLang] = useState("es");
+  const [translating, setTranslating] = useState(false);
+  const [translateError, setTranslateError] = useState<string | null>(null);
+  const [translated, setTranslated] = useState<NoticeAnalysis | null>(null);
+
+  // QR code
+  const [showQR, setShowQR] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!showQR || qrDataUrl) return;
+    const text = [
+      `NoticeShield Action Plan`,
+      `${"─".repeat(28)}`,
+      `${analysis.noticeTypeLabel.toUpperCase()}`,
+      `Urgency: ${analysis.urgency.toUpperCase()}`,
+      analysis.deadline ? `Deadline: ${analysis.deadline}` : "",
+      ``,
+      `WHAT THIS MEANS:`,
+      analysis.summary.slice(0, 200) + (analysis.summary.length > 200 ? "…" : ""),
+      ``,
+      `STEPS:`,
+      ...analysis.nextSteps.slice(0, 5).map((s, i) => `${i + 1}. ${s.slice(0, 100)}`),
+      ``,
+      `Free help: Call or text 211`,
+    ].filter((l) => l !== undefined).join("\n");
+
+    import("qrcode").then((QRCode) => {
+      QRCode.toDataURL(text, { width: 280, margin: 2, color: { dark: "#1e3a5f", light: "#ffffff" } })
+        .then((url) => setQrDataUrl(url))
+        .catch(() => setQrDataUrl(null));
+    }).catch(() => setQrDataUrl(null));
+  }, [showQR, qrDataUrl, analysis]);
+
+  // Follow-up Q&A
+  const [qaHistory, setQaHistory] = useState<Array<{ question: string; answer: string }>>([]);
+  const [currentQuestion, setCurrentQuestion] = useState("");
+  const [answering, setAnswering] = useState(false);
+  const [streamingAnswer, setStreamingAnswer] = useState("");
+  const [qaError, setQaError] = useState<string | null>(null);
+
+  const display = translated ?? analysis;
+
+  const handleTranslate = async () => {
+    setTranslating(true);
+    setTranslateError(null);
+    try {
+      const res = await fetch("/api/translate-notice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ analysis, targetLanguage: translateLang }),
+      });
+      const json = await res.json() as { success: boolean; analysis?: NoticeAnalysis; error?: string };
+      if (!json.success || !json.analysis) {
+        setTranslateError(json.error ?? "Translation failed. Please try again.");
+      } else {
+        setTranslated(json.analysis);
+      }
+    } catch {
+      setTranslateError("Could not connect. Please check your connection and try again.");
+    } finally {
+      setTranslating(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      await downloadActionPlan(analysis);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const canShare = typeof navigator !== "undefined" && "share" in navigator;
+  const handleShare = async () => {
+    const lines = [
+      `${analysis.noticeTypeLabel} — ${URGENCY_LABELS[analysis.urgency] ?? "ACTION REQUIRED"}`,
+      analysis.deadline ? `Deadline: ${analysis.deadline}` : "",
+      "",
+      analysis.summary,
+      "",
+      "Next steps:",
+      ...display.nextSteps.map((s, i) => `${i + 1}. ${s}`),
+    ].filter(Boolean);
+    try {
+      await navigator.share({ title: `NoticeShield: ${analysis.noticeTypeLabel}`, text: lines.join("\n") });
+    } catch { /* user cancelled */ }
+  };
+  const handleAsk = async () => {
+    const question = currentQuestion.trim();
+    if (!question || answering) return;
+    setCurrentQuestion("");
+    setAnswering(true);
+    setStreamingAnswer("");
+    setQaError(null);
+    try {
+      const res = await fetch("/api/follow-up", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ analysis, question }),
+      });
+      if (!res.ok || !res.body) {
+        setQaError("Could not get an answer. Please try again.");
+        return;
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      let finalAnswer = "";
+      outer: while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const raw = line.slice(6).trim();
+          let evt: { type: string; text?: string; answer?: string; error?: string };
+          try { evt = JSON.parse(raw); } catch { continue; }
+          if (evt.type === "token" && evt.text) {
+            finalAnswer += evt.text;
+            setStreamingAnswer(finalAnswer);
+          } else if (evt.type === "result" && evt.answer) {
+            finalAnswer = evt.answer;
+            setQaHistory((prev) => [...prev, { question, answer: finalAnswer }]);
+            setStreamingAnswer("");
+            break outer;
+          } else if (evt.type === "error") {
+            setQaError(evt.error ?? "Answer failed.");
+            break outer;
+          }
+        }
+      }
+    } catch {
+      setQaError("Could not connect. Please check your connection and try again.");
+    } finally {
+      setAnswering(false);
+      setStreamingAnswer("");
+    }
+  };
+
+  const isCanada = analysis.locationLabel?.includes(", Canada") ?? false;
+  const borderColor = BORDER_COLORS[analysis.urgency] ?? "var(--primary)";
+  const legalUrl   = isCanada ? "https://justicenet.ca"     : "https://www.lawhelp.org";
+  const legalLabel = isCanada ? "Find Legal Aid (JusticeNet)" : "Find Legal Aid (LawHelp.org)";
+  const helpUrl    = isCanada ? "https://211canada.ca"      : "https://www.211.org";
+  const helpLabel  = isCanada ? "Search 211 Canada for Local Help" : "Search 211 for Local Help";
+
+  const toggleStep = (i: number) => {
+    setCheckedSteps((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) {
+        next.delete(i);
+      } else {
+        next.add(i);
+      }
+      return next;
+    });
+  };
+
+  return (
+    <div className="result-dashboard" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+      {/* QR Code Modal */}
+      {showQR && (
+        <div
+          onClick={() => setShowQR(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 200,
+            background: "rgba(0,0,0,0.6)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 24,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#ffffff", borderRadius: 16,
+              padding: 28, maxWidth: 340, width: "100%",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 16,
+              boxShadow: "0 24px 64px rgba(0,0,0,0.3)",
+            }}
+          >
+            <div style={{ textAlign: "center" }}>
+              <h2 style={{ margin: "0 0 4px", fontSize: 18, fontWeight: 800, color: "var(--primary)" }}>Share with an Advocate</h2>
+              <p style={{ margin: 0, fontSize: 13, color: "var(--on-surface-variant)", lineHeight: 1.4 }}>
+                Show this QR code to a legal aid worker, housing advocate, or family member so they can read your action plan.
+              </p>
+            </div>
+            {qrDataUrl ? (
+              <img src={qrDataUrl} alt="QR code for action plan" style={{ width: 240, height: 240, borderRadius: 8, border: "1px solid var(--outline-variant)" }} />
+            ) : (
+              <div style={{ width: 240, height: 240, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 36, animation: "spin 1.2s linear infinite", color: "var(--primary)" }}>progress_activity</span>
+              </div>
+            )}
+            <div style={{ background: "var(--surface-low)", borderRadius: 8, padding: "10px 14px", width: "100%", textAlign: "center" }}>
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: "var(--primary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                {analysis.noticeTypeLabel}
+              </p>
+              {analysis.deadline && (
+                <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--error)", fontWeight: 600 }}>
+                  Deadline: {analysis.deadline}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => setShowQR(false)}
+              style={{
+                width: "100%", height: 44,
+                background: "var(--primary)", color: "var(--on-primary)",
+                border: "none", borderRadius: 8,
+                fontSize: 14, fontWeight: 600, fontFamily: "inherit",
+                cursor: "pointer",
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Emergency escalation — critical notices only */}
+      {analysis.urgency === "critical" && (
+        <div style={{
+          background: "linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%)",
+          borderRadius: 12,
+          padding: 20,
+          display: "flex", flexDirection: "column", gap: 14,
+          boxShadow: "0 4px 24px rgba(153,27,27,0.35)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span className="material-symbols-outlined" style={{
+              fontSize: 28, color: "#fca5a5", fontVariationSettings: "'FILL' 1",
+              animation: "pulse 1.8s ease-in-out infinite",
+            }}>emergency_home</span>
+            <div>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: "#fca5a5", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Critical Notice — Immediate Action Required
+              </p>
+              <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#ffffff", lineHeight: 1.3 }}>
+                Free help is one call away
+              </p>
+            </div>
+          </div>
+          <p style={{ margin: 0, fontSize: 14, color: "#fecaca", lineHeight: 1.5 }}>
+            {isCanada
+              ? "Call or text 211 for free, confidential support — housing, legal aid, utilities, and benefits. Available 24/7 across Canada."
+              : "Call or text 211 for free, confidential help — housing, legal aid, utility assistance, and benefits. Available 24/7 in most of the US."}
+          </p>
+          <div style={{ display: "flex", gap: 10 }}>
+            <a
+              href="tel:211"
+              style={{
+                flex: 1, height: 48,
+                background: "#ffffff", color: "#991b1b",
+                borderRadius: 8, border: "none",
+                fontSize: 15, fontWeight: 800, fontFamily: "inherit",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                textDecoration: "none", boxSizing: "border-box",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>call</span>
+              Call 211 Now
+            </a>
+            <a
+              href={isCanada ? "https://211canada.ca" : "https://www.211.org"}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                height: 48, padding: "0 16px",
+                background: "rgba(255,255,255,0.15)", color: "#ffffff",
+                borderRadius: 8, border: "1px solid rgba(255,255,255,0.3)",
+                fontSize: 14, fontWeight: 600, fontFamily: "inherit",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                textDecoration: "none", boxSizing: "border-box", whiteSpace: "nowrap",
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>open_in_new</span>
+              Find Online
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* URGENT banner */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+        background: "var(--error-container)",
+        border: `1px solid ${borderColor}`,
+        borderRadius: 9999,
+        padding: "10px 20px",
+        width: "100%",
+      }}>
+        <span className="material-symbols-outlined" style={{ color: "var(--on-error-container)", fontVariationSettings: "'FILL' 1", fontSize: 20 }}>
+          warning
+        </span>
+        <span className="text-label-md" style={{ color: "var(--on-error-container)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          {URGENCY_LABELS[analysis.urgency] ?? "ACTION REQUIRED"}
+          {analysis.deadline ? ` · ${analysis.deadline}` : ""}
+        </span>
+      </div>
+
+      {/* Header: notice type + mode indicator */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <UrgencyBadge urgency={analysis.urgency} />
+          <h1 className="text-h1" style={{ color: "var(--primary)", margin: 0 }}>{analysis.noticeTypeLabel}</h1>
+        </div>
+        <ModeIndicator mode={analysis.analysisMode} />
+      </div>
+
+      {/* Key details 2-column grid */}
+      <div className="result-details-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{
+          background: "var(--surface)", border: "1px solid var(--outline-variant)",
+          borderRadius: 8, padding: 16, display: "flex", flexDirection: "column", gap: 4,
+          boxShadow: "0 1px 4px rgba(0,53,95,0.05)",
+        }}>
+          <span className="text-label-sm" style={{ color: "var(--on-surface-variant)", textTransform: "uppercase" }}>Deadline</span>
+          <span className="text-body-lg" style={{ color: "var(--on-surface)", fontWeight: 600 }}>
+            {analysis.deadline ?? "See notice"}
+          </span>
+          <DeadlineCountdown deadlineDate={analysis.deadlineDate} />
+        </div>
+        <div style={{
+          background: "var(--surface)", border: "1px solid var(--outline-variant)",
+          borderRadius: 8, padding: 16, display: "flex", flexDirection: "column", gap: 4,
+          boxShadow: "0 1px 4px rgba(0,53,95,0.05)",
+        }}>
+          <span className="text-label-sm" style={{ color: "var(--on-surface-variant)", textTransform: "uppercase" }}>Notice Type</span>
+          <span className="text-body-lg" style={{ color: "var(--on-surface)", fontWeight: 600 }}>
+            {analysis.noticeTypeLabel}
+          </span>
+        </div>
+      </div>
+
+      {analysis.locationLabel && (
+        <div style={{
+          background: "var(--surface)",
+          border: "1px solid var(--outline-variant)",
+          borderRadius: 8,
+          padding: 16,
+          display: "flex",
+          gap: 12,
+          alignItems: "flex-start",
+          boxShadow: "0 1px 4px rgba(0,53,95,0.05)",
+        }}>
+          <span className="material-symbols-outlined" style={{ color: "var(--primary)", fontSize: 22, flexShrink: 0 }}>location_on</span>
+          <div>
+            <span className="text-label-sm" style={{ color: "var(--on-surface-variant)", textTransform: "uppercase" }}>Location context</span>
+            <p className="text-body-md" style={{ color: "var(--on-surface)", margin: "2px 0 0" }}>
+              Resources and next steps are tailored for {analysis.locationLabel}.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* What this means — border-l-primary */}
+      <div style={{
+        background: "var(--surface)", border: "1px solid var(--outline-variant)",
+        borderLeft: `4px solid var(--primary)`,
+        borderRadius: 8, padding: 20,
+        boxShadow: "0 1px 4px rgba(0,53,95,0.05)",
+        position: "relative", overflow: "hidden",
+      }}>
+        <div style={{ position: "absolute", top: 0, right: 0, padding: 16, opacity: 0.08 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 64, fontVariationSettings: "'FILL' 1" }}>translate</span>
+        </div>
+        <h2 className="text-h2" style={{ color: "var(--primary)", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 8 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>lightbulb</span>
+          What this means
+        </h2>
+        <p className="text-body-md" style={{ color: "var(--on-surface-variant)", margin: 0, lineHeight: "1.6", position: "relative", zIndex: 1 }}>
+          {display.summary}
+        </p>
+      </div>
+
+      {/* Risk of Ignoring — border-l-error */}
+      <div style={{
+        background: "var(--surface)", border: "1px solid var(--error)",
+        borderLeft: `4px solid var(--error)`,
+        borderRadius: 8, padding: 20,
+        boxShadow: "0 1px 4px rgba(0,53,95,0.05)",
+      }}>
+        <h2 className="text-h2" style={{ color: "var(--error)", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>security_update_warning</span>
+          Risk of Ignoring
+        </h2>
+        <p className="text-body-md" style={{ color: "var(--on-surface-variant)", margin: 0, lineHeight: "1.6" }}>
+          {display.riskIfIgnored}
+        </p>
+      </div>
+
+      {/* Action Plan — checklist */}
+      <div
+        role="region"
+        aria-label="Required action steps"
+        style={{
+          background: "var(--surface)", border: "1px solid var(--outline-variant)",
+          borderLeft: `4px solid var(--secondary)`,
+          borderRadius: 8, overflow: "hidden",
+          boxShadow: "0 1px 4px rgba(0,53,95,0.05)",
+        }}>
+        <div style={{ padding: "14px 20px", background: "var(--surface-low)", borderBottom: "1px solid var(--outline-variant)", display: "flex", alignItems: "center", gap: 8 }}>
+          <span className="material-symbols-outlined" style={{ color: "var(--secondary)", fontVariationSettings: "'FILL' 1", fontSize: 20 }}>checklist</span>
+          <h2 className="text-h2" style={{ margin: 0 }}>Required Steps</h2>
+        </div>
+        <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
+          {display.nextSteps.map((step, i) => {
+            const tag = STEP_TAGS[i % STEP_TAGS.length];
+            const done = checkedSteps.has(i);
+            return (
+              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+                <div style={{ flexShrink: 0, height: 48, display: "flex", alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={done}
+                    onChange={() => toggleStep(i)}
+                    aria-label={`Step ${i + 1}: ${step}`}
+                    style={{ width: 22, height: 22, cursor: "pointer", accentColor: "var(--primary)" }}
+                  />
+                </div>
+                <div style={{ paddingTop: 6 }}>
+                  <span className="text-label-sm" style={{
+                    color: tag.color, background: tag.bg,
+                    padding: "2px 8px", borderRadius: 9999,
+                    display: "inline-block", marginBottom: 6,
+                  }}>
+                    {tag.label}
+                  </span>
+                  <p className="text-body-md" style={{ color: "var(--on-surface)", margin: 0, lineHeight: "1.5", textDecoration: done ? "line-through" : "none", opacity: done ? 0.5 : 1 }}>
+                    {step}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Safety checkpoint */}
+      <div style={{
+        background: "var(--surface-container)",
+        border: "1px solid var(--outline-variant)",
+        borderLeft: "4px solid var(--primary)",
+        borderRadius: 8,
+        padding: 16,
+        display: "flex",
+        gap: 12,
+        alignItems: "flex-start",
+      }}>
+        <span className="material-symbols-outlined" style={{ color: "var(--primary)", fontSize: 22, flexShrink: 0 }}>verified_user</span>
+        <div>
+          <h2 className="text-label-md" style={{ color: "var(--on-surface)", margin: "0 0 4px" }}>Before you act</h2>
+          <p className="text-body-md" style={{ color: "var(--on-surface-variant)", margin: 0 }}>
+            Verify the deadline, sender, case number, and amount directly from the notice. For eviction, court, immigration, benefits, or shutoff notices, contact legal aid or the issuing office as soon as possible.
+          </p>
+        </div>
+      </div>
+
+      {/* Communication Assistant */}
+      {display.suggestedMessage && (
+        <div style={{
+          background: "var(--surface-low)", border: "1px solid var(--outline-variant)",
+          borderRadius: 8, padding: 20,
+          boxShadow: "0 1px 4px rgba(0,53,95,0.05)",
+        }}>
+          <h2 className="text-h2" style={{ margin: "0 0 8px", display: "flex", alignItems: "center", gap: 8 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 22, color: "var(--primary)" }}>chat_bubble</span>
+            Communication Assistant
+          </h2>
+          <p className="text-label-sm" style={{ color: "var(--on-surface-variant)", margin: "0 0 12px" }}>
+            Use this generated message to contact the relevant office. Replace [brackets] before sending.
+          </p>
+          <div style={{
+            background: "var(--surface)", border: "1px solid var(--outline-variant)",
+            borderRadius: 8, padding: 16,
+          }}>
+            <pre className="text-body-md" style={{
+              color: "var(--on-surface)", whiteSpace: "pre-wrap",
+              fontFamily: "inherit", lineHeight: "1.6", margin: 0,
+            }}>
+              {display.suggestedMessage}
+            </pre>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+            <CopyButton text={display.suggestedMessage} />
+            <a
+              href={`mailto:?subject=${encodeURIComponent(`Re: ${analysis.noticeTypeLabel}`)}&body=${encodeURIComponent(display.suggestedMessage)}`}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                background: "var(--surface-variant)", color: "var(--primary)",
+                border: "none", borderRadius: 6,
+                padding: "6px 12px", cursor: "pointer",
+                fontSize: 13, fontWeight: 600, fontFamily: "inherit",
+                textDecoration: "none",
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>mail</span>
+              Draft Email
+            </a>
+            <a
+              href={`sms:?body=${encodeURIComponent(display.suggestedMessage)}`}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                background: "var(--surface-variant)", color: "var(--primary)",
+                border: "none", borderRadius: 6,
+                padding: "6px 12px", cursor: "pointer",
+                fontSize: 13, fontWeight: 600, fontFamily: "inherit",
+                textDecoration: "none",
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>sms</span>
+              Draft Text
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* Translation */}
+      {display.translation && (
+        <div style={{ background: "var(--surface)", border: "1px solid var(--outline-variant)", borderRadius: 8, overflow: "hidden" }}>
+          <div style={{ padding: "12px 16px", background: "var(--surface-low)", borderBottom: "1px solid var(--outline-variant)", display: "flex", alignItems: "center", gap: 8 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 18, color: "var(--secondary)" }}>translate</span>
+            <h3 className="text-label-md" style={{ margin: 0, color: "var(--on-surface)" }}>
+              Translation — {display.translationLanguage?.toUpperCase() ?? ""}
+            </h3>
+          </div>
+          <div style={{ padding: 16 }}>
+            <p className="text-body-md" style={{ color: "var(--on-surface)", margin: 0, lineHeight: "1.6", whiteSpace: "pre-wrap" }}>{display.translation}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Human Help */}
+      <div style={{
+        background: "var(--surface)", border: "1px solid var(--outline-variant)",
+        borderRadius: 8, padding: 20,
+        boxShadow: "0 1px 4px rgba(0,53,95,0.05)",
+      }}>
+        <h2 className="text-h2" style={{ margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 22, color: "var(--primary)", fontVariationSettings: "'FILL' 1" }}>support_agent</span>
+          Human Help
+        </h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
+          {((analysis.localResources?.length ?? 0) > 0 ? analysis.localResources : [
+            { label: isCanada ? "JusticeNet — Legal Aid Finder" : "Legal Aid Finder", detail: isCanada ? "justicenet.ca — free or low-cost legal help by province" : "lawhelp.org — free or low-cost legal help by state", category: "legal" as const, url: legalUrl },
+            { label: isCanada ? "211 Canada" : "211 Helpline", detail: isCanada ? "Call or search 211Canada — housing, utilities, local services" : "Call or text 211 — housing, utilities, local services", category: "general" as const, url: helpUrl },
+            { label: "National Housing Hotline", detail: "HUD-approved housing counseling, 1-800-569-4287", category: "housing" as const },
+            { label: isCanada ? "Canada.ca — Benefits" : "Benefits.gov", detail: isCanada ? "canada.ca/en/services/benefits — government benefit programs" : "benefits.gov — find government benefit programs", category: "benefits" as const, url: isCanada ? "https://www.canada.ca/en/services/benefits.html" : "https://www.benefits.gov" },
+          ]).map((r) => (
+            <div key={r.label} style={{ paddingBottom: 12, borderBottom: "1px solid var(--outline-variant)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                <span className="text-label-md" style={{ color: "var(--primary)", display: "block" }}>{r.label}</span>
+                <span className="text-label-sm" style={{
+                  color: "var(--on-surface-variant)",
+                  background: "var(--surface-low)",
+                  borderRadius: 9999,
+                  padding: "1px 7px",
+                  textTransform: "uppercase",
+                }}>
+                  {r.category}
+                </span>
+              </div>
+              <span className="text-body-md" style={{ color: "var(--on-surface-variant)" }}>{r.detail}</span>
+              {r.url && (
+                <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-label-sm" style={{
+                  color: "var(--secondary)", display: "inline-flex", alignItems: "center", gap: 4,
+                  textDecoration: "none", marginTop: 4,
+                }}>
+                  Visit site
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>open_in_new</span>
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <a
+            href={legalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              width: "100%", height: 48, border: "1px solid var(--primary)",
+              background: "transparent", color: "var(--primary)",
+              borderRadius: 8, fontSize: 14, fontWeight: 600, fontFamily: "inherit",
+              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              textDecoration: "none", boxSizing: "border-box",
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>gavel</span>
+            {legalLabel}
+          </a>
+          <a
+            href={helpUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              width: "100%", height: 48,
+              background: "var(--primary)", color: "var(--on-primary)",
+              border: "none", borderRadius: 8,
+              fontSize: 14, fontWeight: 600, fontFamily: "inherit",
+              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              boxShadow: "0 4px 12px rgba(0,53,95,0.2)", textDecoration: "none", boxSizing: "border-box",
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>support_agent</span>
+            {helpLabel}
+          </a>
+        </div>
+      </div>
+
+      {/* Follow-up Q&A */}
+      <div style={{
+        background: "var(--surface)", border: "1px solid var(--outline-variant)",
+        borderLeft: "4px solid var(--primary)",
+        borderRadius: 8, overflow: "hidden",
+        boxShadow: "0 1px 4px rgba(0,53,95,0.05)",
+      }}>
+        <div style={{ padding: "14px 20px", background: "var(--surface-low)", borderBottom: "1px solid var(--outline-variant)", display: "flex", alignItems: "center", gap: 8 }}>
+          <span className="material-symbols-outlined" style={{ color: "var(--primary)", fontVariationSettings: "'FILL' 1", fontSize: 20 }}>forum</span>
+          <h2 className="text-h2" style={{ margin: 0 }}>Ask about this notice</h2>
+        </div>
+        <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+
+          {/* Suggested questions */}
+          {qaHistory.length === 0 && !answering && (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {(SUGGESTED_QUESTIONS[analysis.noticeType] ?? DEFAULT_QUESTIONS).map((q) => (
+                <button
+                  key={q}
+                  onClick={() => { setCurrentQuestion(q); }}
+                  style={{
+                    background: "var(--surface-variant)", border: "1px solid var(--outline-variant)",
+                    borderRadius: 9999, padding: "6px 12px",
+                    fontSize: 12, fontWeight: 500, fontFamily: "inherit",
+                    color: "var(--primary)", cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Past Q&A */}
+          {qaHistory.map((item, i) => (
+            <div key={i} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+                  background: "var(--primary)", color: "var(--on-primary)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 13, fontWeight: 700, marginTop: 2,
+                }}>Q</div>
+                <p className="text-body-md" style={{ color: "var(--on-surface)", margin: 0, fontWeight: 600, lineHeight: "1.5" }}>{item.question}</p>
+              </div>
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+                  background: "var(--secondary-container)", color: "var(--on-secondary-container)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 13, fontWeight: 700, marginTop: 2,
+                }}>A</div>
+                <p className="text-body-md" style={{ color: "var(--on-surface-variant)", margin: 0, lineHeight: "1.6" }}>{item.answer}</p>
+              </div>
+              {i < qaHistory.length - 1 && <div style={{ borderTop: "1px solid var(--outline-variant)", margin: "4px 0" }} />}
+            </div>
+          ))}
+
+          {/* Streaming answer in progress */}
+          {answering && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {qaHistory.length > 0 && <div style={{ borderTop: "1px solid var(--outline-variant)", margin: "4px 0" }} />}
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+                  background: "var(--secondary-container)", color: "var(--on-secondary-container)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 13, fontWeight: 700, marginTop: 2,
+                }}>A</div>
+                <p className="text-body-md" style={{ color: "var(--on-surface-variant)", margin: 0, lineHeight: "1.6" }}>
+                  {streamingAnswer || (
+                    <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 16, animation: "spin 1.2s linear infinite", color: "var(--secondary)" }}>progress_activity</span>
+                      Gemma is thinking…
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {qaError && (
+            <p className="text-body-md" style={{ color: "var(--error)", margin: 0 }}>{qaError}</p>
+          )}
+
+          {/* Input row */}
+          <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+            <input
+              type="text"
+              value={currentQuestion}
+              onChange={(e) => setCurrentQuestion(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") void handleAsk(); }}
+              placeholder="e.g. What if I miss the deadline?"
+              disabled={answering}
+              aria-label="Ask a follow-up question about this notice"
+              style={{
+                flex: 1, height: 44, borderRadius: 8,
+                border: "1px solid var(--outline-variant)",
+                background: answering ? "var(--surface-low)" : "var(--surface)",
+                color: "var(--on-surface)",
+                fontSize: 15, fontFamily: "inherit", padding: "0 12px",
+                outline: "none",
+              }}
+            />
+            <button
+              onClick={() => void handleAsk()}
+              disabled={answering || !currentQuestion.trim()}
+              aria-label="Send question"
+              style={{
+                width: 44, height: 44, flexShrink: 0,
+                background: (answering || !currentQuestion.trim()) ? "var(--outline-variant)" : "var(--primary)",
+                color: (answering || !currentQuestion.trim()) ? "var(--on-surface-variant)" : "var(--on-primary)",
+                border: "none", borderRadius: 8, cursor: (answering || !currentQuestion.trim()) ? "not-allowed" : "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "all 0.15s",
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>send</span>
+            </button>
+          </div>
+          <p className="text-label-sm" style={{ color: "var(--outline)", margin: 0 }}>
+            Answers are based on this analysis only. Not legal advice.
+          </p>
+        </div>
+      </div>
+
+      {/* Disclaimer */}
+      <DisclaimerCard text={analysis.disclaimer} />
+
+      {/* Translate Report */}
+      <div style={{
+        background: "var(--surface)", border: "1px solid var(--outline-variant)",
+        borderRadius: 8, padding: 20,
+        boxShadow: "0 1px 4px rgba(0,53,95,0.05)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 20, color: "var(--secondary)", fontVariationSettings: "'FILL' 1" }}>translate</span>
+          <h2 className="text-h2" style={{ margin: 0 }}>Translate this report</h2>
+          {translated && (
+            <button
+              onClick={() => setTranslated(null)}
+              className="text-label-sm"
+              style={{ marginLeft: "auto", background: "none", border: "none", color: "var(--outline)", cursor: "pointer", fontFamily: "inherit" }}
+            >
+              Back to English
+            </button>
+          )}
+        </div>
+
+        {translated ? (
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            background: "var(--secondary-container)", color: "var(--on-secondary-container)",
+            borderRadius: 9999, padding: "4px 12px", fontSize: 12, fontWeight: 700,
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 14, fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+            Viewing in {TRANSLATE_LANGUAGES.find(l => l.code === translateLang)?.label ?? translateLang}
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <select
+              value={translateLang}
+              onChange={(e) => setTranslateLang(e.target.value)}
+              style={{
+                flex: 1, height: 44, borderRadius: 8,
+                border: "1px solid var(--outline-variant)",
+                background: "var(--surface)", color: "var(--on-surface)",
+                fontSize: 15, fontFamily: "inherit", padding: "0 12px",
+                outline: "none",
+              }}
+            >
+              {TRANSLATE_LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code}>{l.label}</option>
+              ))}
+            </select>
+            <button
+              onClick={handleTranslate}
+              disabled={translating}
+              style={{
+                height: 44, padding: "0 20px",
+                background: "var(--secondary)",
+                color: "var(--on-secondary)",
+                border: "none", borderRadius: 8,
+                fontSize: 14, fontWeight: 600, fontFamily: "inherit",
+                cursor: translating ? "not-allowed" : "pointer",
+                display: "flex", alignItems: "center", gap: 8,
+                whiteSpace: "nowrap", flexShrink: 0,
+                position: "relative", overflow: "hidden",
+              }}
+            >
+              {translating && (
+                <span style={{
+                  position: "absolute", bottom: 0, left: 0, height: 3,
+                  width: "40%", borderRadius: 9999,
+                  background: "rgba(255,255,255,0.7)",
+                  animation: "translateBar 1.4s ease-in-out infinite",
+                }} />
+              )}
+              {translating ? (
+                <>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, animation: "spin 1.2s linear infinite" }}>progress_activity</span>
+                  Translating…
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>translate</span>
+                  Translate
+                </>
+              )}
+            </button>
+            <style>{`
+              @keyframes translateBar {
+                0%   { left: -40%; }
+                100% { left: 140%; }
+              }
+            `}</style>
+          </div>
+        )}
+
+        {translateError && (
+          <p className="text-body-md" style={{ color: "var(--error)", margin: "10px 0 0" }}>{translateError}</p>
+        )}
+      </div>
+
+      {/* Share + Download row */}
+      <button
+        onClick={() => { setShowQR(true); setQrDataUrl(null); }}
+        aria-label="Show QR code to share action plan with an advocate"
+        style={{
+          width: "100%", height: 52,
+          background: "var(--surface)", color: "var(--primary)",
+          border: "1px solid var(--primary)",
+          borderRadius: 8,
+          fontSize: 14, fontWeight: 600, fontFamily: "inherit",
+          cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+          transition: "all 0.15s",
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>qr_code_2</span>
+        Share with Advocate (QR)
+      </button>
+
+      {canShare && (
+        <button
+          onClick={handleShare}
+          aria-label="Share action plan via system share sheet"
+          style={{
+            width: "100%", height: 52,
+            background: "var(--surface)", color: "var(--primary)",
+            border: "1px solid var(--primary)",
+            borderRadius: 8,
+            fontSize: 14, fontWeight: 600, fontFamily: "inherit",
+            cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+            transition: "all 0.15s",
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>share</span>
+          Share Action Plan
+        </button>
+      )}
+
+      {/* Download Action Plan */}
+      <button
+        onClick={handleDownload}
+        disabled={downloading}
+        aria-label="Download action plan as PDF"
+        style={{
+          width: "100%", height: 52,
+          background: downloading ? "var(--outline-variant)" : "var(--secondary)",
+          color: downloading ? "var(--on-surface-variant)" : "var(--on-secondary)",
+          border: "none", borderRadius: 8,
+          fontSize: 14, fontWeight: 600, fontFamily: "inherit",
+          cursor: downloading ? "not-allowed" : "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+          boxShadow: downloading ? "none" : "0 4px 16px rgba(0,105,113,0.25)",
+          transition: "all 0.15s",
+        }}
+      >
+        {downloading ? (
+          <>
+            <span style={{
+              display: "inline-block", width: 18, height: 18,
+              border: "2.5px solid rgba(255,255,255,0.4)",
+              borderTopColor: "var(--on-surface-variant)", borderRadius: "50%",
+              animation: "spin 0.7s linear infinite",
+            }} />
+            Generating PDF…
+          </>
+        ) : (
+          <>
+            <span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>download</span>
+            Download Action Plan (PDF)
+          </>
+        )}
+      </button>
+
+      {/* Back button */}
+      <button
+        onClick={onReset}
+        className="btn-secondary"
+        aria-label="Go back and analyze another notice"
+        style={{ width: "100%", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_back</span>
+        Analyze Another Notice
+      </button>
+    </div>
+  );
+}
