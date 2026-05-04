@@ -10,7 +10,7 @@ Built for the **Gemma 4 Good Hackathon**.
 
 ## Try It
 
-**Live demo:** `https://noticeshield.vercel.app` ← _replace after deploy_
+**Live demo:** https://noticeshield.vercel.app/
 
 **Quickest path to the full experience:**
 
