@@ -140,13 +140,24 @@ Date of Notice: October 15, 2023`,
   },
 ];
 
-const MAX_IMAGE_SIZE_MB = 5;
+const MAX_DOCUMENT_SIZE_MB = 5;
+const MAX_PREPARED_IMAGE_BYTES = 1.5 * 1024 * 1024;
+const MAX_IMAGE_EDGE = 1600;
+const IMAGE_OUTPUT_TYPE = "image/jpeg";
+const IMAGE_OUTPUT_QUALITY = 0.82;
+
+interface PreparedUpload {
+  name: string;
+  base64: string;
+  mimeType: string;
+  previewUrl: string | null;
+}
 
 export function NoticeUploader({ onSubmit, isLoading }: Props) {
   const [noticeText, setNoticeText] = useState("");
   const [regionIndex, setRegionIndex] = useState(0);
   const [locality, setLocality] = useState(locationGroups[0].areas[0]);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<PreparedUpload | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [showTextInput, setShowTextInput] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -154,22 +165,36 @@ export function NoticeUploader({ onSubmit, isLoading }: Props) {
 
   const selectedLocation = buildLocation(regionIndex, locality);
 
-  const handleFile = useCallback((file: File) => {
-    if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
-      alert(`File too large. Maximum size is ${MAX_IMAGE_SIZE_MB}MB.`);
+  const handleFile = useCallback(async (file: File) => {
+    if (file.size > MAX_DOCUMENT_SIZE_MB * 1024 * 1024) {
+      alert(`File too large. Maximum size is ${MAX_DOCUMENT_SIZE_MB}MB.`);
       return;
     }
-    setImageFile(file);
+
+    try {
+      const preparedFile = file.type.startsWith("image/")
+        ? await prepareImageUpload(file)
+        : await prepareDocumentUpload(file);
+
+      setImageFile(preparedFile);
+      setImagePreview(preparedFile.previewUrl);
+    } catch {
+      alert("Could not prepare that file. Please try a clearer photo or paste the notice text instead.");
+      return;
+    }
+
     setShowTextInput(false);
-    const reader = new FileReader();
-    reader.onload = (e) => setImagePreview(e.target?.result as string);
-    reader.readAsDataURL(file);
   }, []);
 
   const handleSubmit = async () => {
     if (imageFile) {
-      const base64 = await fileToBase64(imageFile);
-      onSubmit({ noticeText: noticeText.trim(), targetLanguage: "en", location: selectedLocation, imageBase64: base64, imageMimeType: imageFile.type });
+      onSubmit({
+        noticeText: noticeText.trim(),
+        targetLanguage: "en",
+        location: selectedLocation,
+        imageBase64: imageFile.base64,
+        imageMimeType: imageFile.mimeType,
+      });
     } else {
       onSubmit({ noticeText: noticeText.trim(), targetLanguage: "en", location: selectedLocation });
     }
@@ -204,7 +229,7 @@ export function NoticeUploader({ onSubmit, isLoading }: Props) {
         </div>
       </div>
 
-      {imagePreview && (
+      {imageFile && (
         <div style={{
           background: "var(--surface)",
           border: "1px solid var(--outline-variant)",
@@ -215,11 +240,24 @@ export function NoticeUploader({ onSubmit, isLoading }: Props) {
           gap: 12,
           alignItems: "center",
         }}>
-          <img
-            src={imagePreview}
-            alt="Notice preview"
-            style={{ maxHeight: 200, borderRadius: 6, objectFit: "contain", maxWidth: "100%" }}
-          />
+          {imagePreview ? (
+            <img
+              src={imagePreview}
+              alt="Notice preview"
+              style={{ maxHeight: 200, borderRadius: 6, objectFit: "contain", maxWidth: "100%" }}
+            />
+          ) : (
+            <div style={{
+              width: "100%", minHeight: 120,
+              borderRadius: 8,
+              background: "var(--surface-container)",
+              display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8,
+              color: "var(--on-surface-variant)",
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 38 }}>picture_as_pdf</span>
+              <span className="text-label-sm">PDF selected</span>
+            </div>
+          )}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
             <span className="text-label-sm" style={{ color: "var(--outline)" }}>{imageFile?.name}</span>
             <button
@@ -232,7 +270,7 @@ export function NoticeUploader({ onSubmit, isLoading }: Props) {
         </div>
       )}
 
-      {!imagePreview && !showTextInput && (
+      {!imageFile && !showTextInput && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <button
             onClick={() => cameraInputRef.current?.click()}
@@ -391,9 +429,9 @@ export function NoticeUploader({ onSubmit, isLoading }: Props) {
       )}
 
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment"
-        style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+        style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleFile(f); }} />
       <input ref={fileInputRef} type="file" accept="image/*,application/pdf"
-        style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+        style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleFile(f); }} />
 
     </div>
   );
@@ -405,5 +443,85 @@ async function fileToBase64(file: File): Promise<string> {
     reader.onload = () => { const r = reader.result as string; resolve(r.split(",")[1]); };
     reader.onerror = reject;
     reader.readAsDataURL(file);
+  });
+}
+
+async function prepareDocumentUpload(file: File): Promise<PreparedUpload> {
+  return {
+    name: file.name,
+    base64: await fileToBase64(file),
+    mimeType: file.type || "application/pdf",
+    previewUrl: null,
+  };
+}
+
+async function prepareImageUpload(file: File): Promise<PreparedUpload> {
+  const image = await loadImage(file);
+  const scale = Math.min(1, MAX_IMAGE_EDGE / Math.max(image.naturalWidth, image.naturalHeight));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Canvas is not available.");
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  let quality = IMAGE_OUTPUT_QUALITY;
+  let blob = await canvasToBlob(canvas, IMAGE_OUTPUT_TYPE, quality);
+  while (blob.size > MAX_PREPARED_IMAGE_BYTES && quality > 0.54) {
+    quality -= 0.08;
+    blob = await canvasToBlob(canvas, IMAGE_OUTPUT_TYPE, quality);
+  }
+
+  if (blob.size > MAX_PREPARED_IMAGE_BYTES) {
+    throw new Error("Image is too large after compression.");
+  }
+
+  const base64 = await blobToBase64(blob);
+  const originalName = file.name.replace(/\.[^.]+$/, "");
+
+  return {
+    name: `${originalName || "notice"}.jpg`,
+    base64,
+    mimeType: IMAGE_OUTPUT_TYPE,
+    previewUrl: `data:${IMAGE_OUTPUT_TYPE};base64,${base64}`,
+  };
+}
+
+async function loadImage(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Could not load image."));
+    };
+    image.src = objectUrl;
+  });
+}
+
+async function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error("Could not compress image."));
+    }, type, quality);
+  });
+}
+
+async function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result.split(",")[1]);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
   });
 }

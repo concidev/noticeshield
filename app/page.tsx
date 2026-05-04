@@ -103,8 +103,18 @@ export default function HomePage() {
       });
 
       if (!res.ok) {
-        const json = await res.json() as { success: boolean; error?: string };
-        setError(json.error ?? "Something went wrong. Please try again.");
+        let message = res.status === 413
+          ? "That photo is too large to send. Please take the photo from a little farther away or paste the notice text instead."
+          : "Something went wrong. Please try again.";
+
+        try {
+          const json = await res.json() as { success: boolean; error?: string };
+          message = json.error ?? message;
+        } catch {
+          // Some hosts return an HTML error page when the request is rejected before it reaches Next.js.
+        }
+
+        setError(message);
         return;
       }
 
