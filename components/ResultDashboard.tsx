@@ -123,21 +123,22 @@ export function ResultDashboard({ analysis, onReset }: Props) {
   const [translated, setTranslated] = useState<NoticeAnalysis | null>(null);
   const [showQR, setShowQR] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const display = translated ?? analysis;
 
   useEffect(() => {
     if (!showQR || qrDataUrl) return;
     const text = [
       `NoticeShield Action Plan`,
       `${"─".repeat(28)}`,
-      `${analysis.noticeTypeLabel.toUpperCase()}`,
-      `Urgency: ${analysis.urgency.toUpperCase()}`,
-      analysis.deadline ? `Deadline: ${analysis.deadline}` : "",
+      `${display.noticeTypeLabel.toUpperCase()}`,
+      `Urgency: ${display.urgency.toUpperCase()}`,
+      display.deadline ? `Deadline: ${display.deadline}` : "",
       ``,
       `WHAT THIS MEANS:`,
-      analysis.summary.slice(0, 200) + (analysis.summary.length > 200 ? "…" : ""),
+      display.summary.slice(0, 200) + (display.summary.length > 200 ? "…" : ""),
       ``,
       `STEPS:`,
-      ...analysis.nextSteps.slice(0, 5).map((s, i) => `${i + 1}. ${s.slice(0, 100)}`),
+      ...display.nextSteps.slice(0, 5).map((s, i) => `${i + 1}. ${s.slice(0, 100)}`),
       ``,
       `Free help: Call or text 211`,
     ].filter((l) => l !== undefined).join("\n");
@@ -147,15 +148,13 @@ export function ResultDashboard({ analysis, onReset }: Props) {
         .then((url) => setQrDataUrl(url))
         .catch(() => setQrDataUrl(null));
     }).catch(() => setQrDataUrl(null));
-  }, [showQR, qrDataUrl, analysis]);
+  }, [showQR, qrDataUrl, display]);
 
   const [qaHistory, setQaHistory] = useState<Array<{ question: string; answer: string }>>([]);
   const [currentQuestion, setCurrentQuestion] = useState("");
   const [answering, setAnswering] = useState(false);
   const [streamingAnswer, setStreamingAnswer] = useState("");
   const [qaError, setQaError] = useState<string | null>(null);
-
-  const display = translated ?? analysis;
 
   const handleTranslate = async () => {
     setTranslating(true);
@@ -182,7 +181,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      await downloadActionPlan(analysis);
+      await downloadActionPlan(display);
     } finally {
       setDownloading(false);
     }
@@ -191,16 +190,16 @@ export function ResultDashboard({ analysis, onReset }: Props) {
   const canShare = typeof navigator !== "undefined" && "share" in navigator;
   const handleShare = async () => {
     const lines = [
-      `${analysis.noticeTypeLabel} — ${URGENCY_LABELS[analysis.urgency] ?? "ACTION REQUIRED"}`,
-      analysis.deadline ? `Deadline: ${analysis.deadline}` : "",
+      `${display.noticeTypeLabel} — ${URGENCY_LABELS[display.urgency] ?? "ACTION REQUIRED"}`,
+      display.deadline ? `Deadline: ${display.deadline}` : "",
       "",
-      analysis.summary,
+      display.summary,
       "",
       "Next steps:",
       ...display.nextSteps.map((s, i) => `${i + 1}. ${s}`),
     ].filter(Boolean);
     try {
-      await navigator.share({ title: `NoticeShield: ${analysis.noticeTypeLabel}`, text: lines.join("\n") });
+      await navigator.share({ title: `NoticeShield: ${display.noticeTypeLabel}`, text: lines.join("\n") });
     } catch { /* user cancelled */ }
   };
   const handleAsk = async () => {
@@ -257,8 +256,8 @@ export function ResultDashboard({ analysis, onReset }: Props) {
     }
   };
 
-  const isCanada = analysis.locationLabel?.includes(", Canada") ?? false;
-  const borderColor = BORDER_COLORS[analysis.urgency] ?? "var(--primary)";
+  const isCanada = display.locationLabel?.includes(", Canada") ?? false;
+  const borderColor = BORDER_COLORS[display.urgency] ?? "var(--primary)";
   const legalUrl = isCanada ? "https://justicenet.ca" : "https://www.lawhelp.org";
   const legalLabel = isCanada ? "Find Legal Aid (JusticeNet)" : "Find Legal Aid (LawHelp.org)";
   const helpUrl = isCanada ? "https://211canada.ca" : "https://www.211.org";
@@ -312,11 +311,11 @@ export function ResultDashboard({ analysis, onReset }: Props) {
             )}
             <div style={{ background: "var(--surface-low)", borderRadius: 8, padding: "10px 14px", width: "100%", textAlign: "center" }}>
               <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: "var(--primary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                {analysis.noticeTypeLabel}
+                {display.noticeTypeLabel}
               </p>
-              {analysis.deadline && (
+              {display.deadline && (
                 <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--error)", fontWeight: 600 }}>
-                  Deadline: {analysis.deadline}
+                  Deadline: {display.deadline}
                 </p>
               )}
             </div>
@@ -335,7 +334,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           </div>
         </div>
       )}
-      {analysis.urgency === "critical" && (
+      {display.urgency === "critical" && (
         <div style={{
           background: "linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%)",
           borderRadius: 12,
@@ -409,14 +408,14 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           warning
         </span>
         <span className="text-label-md" style={{ color: "var(--on-error-container)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-          {URGENCY_LABELS[analysis.urgency] ?? "ACTION REQUIRED"}
-          {analysis.deadline ? ` · ${analysis.deadline}` : ""}
+          {URGENCY_LABELS[display.urgency] ?? "ACTION REQUIRED"}
+          {display.deadline ? ` · ${display.deadline}` : ""}
         </span>
       </div>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <UrgencyBadge urgency={analysis.urgency} />
-          <h1 className="text-h1" style={{ color: "var(--primary)", margin: 0 }}>{analysis.noticeTypeLabel}</h1>
+          <UrgencyBadge urgency={display.urgency} />
+          <h1 className="text-h1" style={{ color: "var(--primary)", margin: 0 }}>{display.noticeTypeLabel}</h1>
         </div>
         <ModeIndicator mode={analysis.analysisMode} />
       </div>
@@ -428,9 +427,9 @@ export function ResultDashboard({ analysis, onReset }: Props) {
         }}>
           <span className="text-label-sm" style={{ color: "var(--on-surface-variant)", textTransform: "uppercase" }}>Deadline</span>
           <span className="text-body-lg" style={{ color: "var(--on-surface)", fontWeight: 600 }}>
-            {analysis.deadline ?? "See notice"}
+            {display.deadline ?? "See notice"}
           </span>
-          <DeadlineCountdown deadlineDate={analysis.deadlineDate} />
+          <DeadlineCountdown deadlineDate={display.deadlineDate} />
         </div>
         <div style={{
           background: "var(--surface)", border: "1px solid var(--outline-variant)",
@@ -439,12 +438,12 @@ export function ResultDashboard({ analysis, onReset }: Props) {
         }}>
           <span className="text-label-sm" style={{ color: "var(--on-surface-variant)", textTransform: "uppercase" }}>Notice Type</span>
           <span className="text-body-lg" style={{ color: "var(--on-surface)", fontWeight: 600 }}>
-            {analysis.noticeTypeLabel}
+            {display.noticeTypeLabel}
           </span>
         </div>
       </div>
 
-      {analysis.locationLabel && (
+      {display.locationLabel && (
         <div style={{
           background: "var(--surface)",
           border: "1px solid var(--outline-variant)",
@@ -459,7 +458,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           <div>
             <span className="text-label-sm" style={{ color: "var(--on-surface-variant)", textTransform: "uppercase" }}>Location context</span>
             <p className="text-body-md" style={{ color: "var(--on-surface)", margin: "2px 0 0" }}>
-              Resources and next steps are tailored for {analysis.locationLabel}.
+              Resources and next steps are tailored for {display.locationLabel}.
             </p>
           </div>
         </div>
@@ -586,7 +585,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
             <CopyButton text={display.suggestedMessage} />
             <a
-              href={`mailto:?subject=${encodeURIComponent(`Re: ${analysis.noticeTypeLabel}`)}&body=${encodeURIComponent(display.suggestedMessage)}`}
+              href={`mailto:?subject=${encodeURIComponent(`Re: ${display.noticeTypeLabel}`)}&body=${encodeURIComponent(display.suggestedMessage)}`}
               style={{
                 display: "inline-flex", alignItems: "center", gap: 4,
                 background: "var(--surface-variant)", color: "var(--primary)",
@@ -639,7 +638,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           Human Help
         </h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
-          {((analysis.localResources?.length ?? 0) > 0 ? analysis.localResources : [
+          {((display.localResources?.length ?? 0) > 0 ? display.localResources : [
             { label: isCanada ? "JusticeNet — Legal Aid Finder" : "Legal Aid Finder", detail: isCanada ? "justicenet.ca — free or low-cost legal help by province" : "lawhelp.org — free or low-cost legal help by state", category: "legal" as const, url: legalUrl },
             { label: isCanada ? "211 Canada" : "211 Helpline", detail: isCanada ? "Call or search 211Canada — housing, utilities, local services" : "Call or text 211 — housing, utilities, local services", category: "general" as const, url: helpUrl },
             { label: "National Housing Hotline", detail: "HUD-approved housing counseling, 1-800-569-4287", category: "housing" as const },
@@ -822,7 +821,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           </p>
         </div>
       </div>
-      <DisclaimerCard text={analysis.disclaimer} />
+      <DisclaimerCard text={display.disclaimer} />
       <div style={{
         background: "var(--surface)", border: "1px solid var(--outline-variant)",
         borderRadius: 8, padding: 20,

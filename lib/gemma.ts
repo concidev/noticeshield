@@ -320,26 +320,34 @@ Rules:
 }
 
 /**
- * Translate only the user-facing fields of a pre-cached analysis.
- * Much faster than a full analysis call — no reasoning, just translation.
- * Falls back to the original English analysis if anything goes wrong.
+ * Translate the full user-facing report.
+ * Much faster than a full analysis call because the notice has already been understood.
  */
 export async function gemmaTranslateCached(
   analysis: NoticeAnalysis,
   targetLanguage: string
 ): Promise<NoticeAnalysis> {
   if (!GEMMA_API_URL || !GEMMA_API_KEY) {
-    return { ...analysis, translationLanguage: targetLanguage };
+    throw new Error("Translation is not configured. Add GEMMA_API_URL and GEMMA_API_KEY to enable live translation.");
   }
 
   const langName = LANGUAGE_NAMES[targetLanguage] ?? targetLanguage;
 
   const payload = {
+    noticeTypeLabel: analysis.noticeTypeLabel,
+    deadline: analysis.deadline,
     summary: analysis.summary,
     riskIfIgnored: analysis.riskIfIgnored,
     nextSteps: analysis.nextSteps,
     suggestedMessage: analysis.suggestedMessage,
-    resourceDetails: analysis.localResources.map((r) => r.detail),
+    locationLabel: analysis.locationLabel,
+    localResources: analysis.localResources.map((resource) => ({
+      label: resource.label,
+      detail: resource.detail,
+      category: resource.category,
+      url: resource.url,
+    })),
+    disclaimer: analysis.disclaimer,
   };
 
   const response = await fetch(GEMMA_API_URL, {
@@ -357,7 +365,8 @@ export async function gemmaTranslateCached(
 Rules:
 - Return ONLY valid JSON with the exact same keys
 - Keep proper names, agency names, addresses, phone numbers, URLs, dates, case numbers, and monetary amounts unchanged
-- Translate all descriptive text naturally at a Grade 6 reading level`,
+- Keep the localResources category and url values unchanged
+- Translate every human-facing string naturally at a Grade 6 reading level`,
         },
         {
           role: "user",
@@ -365,16 +374,19 @@ Rules:
         },
       ],
       temperature: 0.1,
-      max_tokens: 3000,
+      max_tokens: 5000,
     }),
   });
 
-  if (!response.ok) return { ...analysis, translationLanguage: targetLanguage };
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Gemma translation error ${response.status}: ${error}`);
+  }
 
   try {
     const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
     const raw = data.choices?.[0]?.message?.content ?? "";
-    if (!raw) return { ...analysis, translationLanguage: targetLanguage };
+    if (!raw) throw new Error("Gemma returned an empty translation.");
 
     const cleaned = raw
       .replace(/<thought>[\s\S]*?<\/thought>/gi, "")
@@ -385,30 +397,40 @@ Rules:
 
     const jsonStart = cleaned.indexOf("{");
     const jsonEnd = cleaned.lastIndexOf("}");
-    if (jsonStart === -1 || jsonEnd === -1) return { ...analysis, translationLanguage: targetLanguage };
+    if (jsonStart === -1 || jsonEnd === -1) throw new Error("Gemma returned a translation without JSON.");
 
     const t = JSON.parse(cleaned.slice(jsonStart, jsonEnd + 1)) as {
+      noticeTypeLabel?: string;
+      deadline?: string | null;
       summary?: string;
       riskIfIgnored?: string;
       nextSteps?: string[];
       suggestedMessage?: string;
-      resourceDetails?: string[];
+      locationLabel?: string | null;
+      localResources?: Array<Partial<LocalResource>>;
+      disclaimer?: string;
     };
 
     return {
       ...analysis,
+      noticeTypeLabel: t.noticeTypeLabel ?? analysis.noticeTypeLabel,
+      deadline: t.deadline ?? analysis.deadline,
       summary: t.summary ?? analysis.summary,
       riskIfIgnored: t.riskIfIgnored ?? analysis.riskIfIgnored,
       nextSteps: Array.isArray(t.nextSteps) ? t.nextSteps : analysis.nextSteps,
       suggestedMessage: t.suggestedMessage ?? analysis.suggestedMessage,
+      locationLabel: t.locationLabel ?? analysis.locationLabel,
       localResources: analysis.localResources.map((r, i) => ({
         ...r,
-        detail: t.resourceDetails?.[i] ?? r.detail,
+        label: t.localResources?.[i]?.label ?? r.label,
+        detail: t.localResources?.[i]?.detail ?? r.detail,
       })),
+      disclaimer: t.disclaimer ?? analysis.disclaimer,
       translation: null,
       translationLanguage: targetLanguage,
     };
-  } catch {
-    return { ...analysis, translationLanguage: targetLanguage };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Translation failed.";
+    throw new Error(message);
   }
 }
