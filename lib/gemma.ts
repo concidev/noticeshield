@@ -2,6 +2,8 @@ import type { LocalResource, NoticeAnalysis, NoticeType, UrgencyLevel, UserLocat
 
 const GEMMA_API_URL = process.env.GEMMA_API_URL ?? "";
 const GEMMA_API_KEY = process.env.GEMMA_API_KEY ?? "";
+const DEFAULT_GEMMA_MODEL = "gemma-3-27b-it";
+const FALLBACK_GEMMA_MODELS = ["gemma-3-27b-it", "gemma-3n-e4b-it"];
 
 const SYSTEM_PROMPT = `You are NoticeShield, an AI assistant that helps people understand urgent civic notices.
 Your job is to analyze official notices and return a structured JSON response.
@@ -41,6 +43,73 @@ const LANGUAGE_NAMES: Record<string, string> = {
   ru: "Russian", vi: "Vietnamese", ko: "Korean",
   tl: "Filipino", so: "Somali",
 };
+
+function getGemmaModelCandidates(): string[] {
+  const configured = process.env.GEMMA_MODEL ?? DEFAULT_GEMMA_MODEL;
+  const candidates = [
+    configured,
+    configured.replace(/^models\//, ""),
+    ...FALLBACK_GEMMA_MODELS,
+  ].filter(Boolean);
+
+  return [...new Set(candidates)];
+}
+
+function shouldTryNextModel(status: number): boolean {
+  return status === 404 || status === 429 || status >= 500;
+}
+
+function normalizeGemmaRequestBody(body: Record<string, unknown>): Record<string, unknown> {
+  const messages = body.messages;
+  if (!Array.isArray(messages)) return body;
+
+  return {
+    ...body,
+    messages: messages.map((message) => {
+      if (!message || typeof message !== "object" || !("role" in message)) return message;
+      const chatMessage = message as { role: string; content: unknown };
+      if (chatMessage.role !== "system") return chatMessage;
+
+      return {
+        ...chatMessage,
+        role: "user",
+        content: typeof chatMessage.content === "string"
+          ? `Instructions:\n${chatMessage.content}`
+          : chatMessage.content,
+      };
+    }),
+  };
+}
+
+async function fetchGemmaChatCompletion(body: Record<string, unknown>): Promise<Response> {
+  let lastResponse: Response | null = null;
+  const normalizedBody = normalizeGemmaRequestBody(body);
+
+  for (const model of getGemmaModelCandidates()) {
+    const response = await fetch(GEMMA_API_URL, {
+      method: "POST",
+      signal: AbortSignal.timeout(120_000),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${GEMMA_API_KEY}`,
+      },
+      body: JSON.stringify({ ...normalizedBody, model }),
+    });
+
+    if (response.ok || !shouldTryNextModel(response.status)) return response;
+    lastResponse = response;
+  }
+
+  return lastResponse ?? fetch(GEMMA_API_URL, {
+    method: "POST",
+    signal: AbortSignal.timeout(120_000),
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${GEMMA_API_KEY}`,
+    },
+    body: JSON.stringify({ ...normalizedBody, model: DEFAULT_GEMMA_MODEL }),
+  });
+}
 
 function buildUserPrompt(noticeText: string, targetLanguage?: string, location?: UserLocation): string {
   const langName = targetLanguage ? (LANGUAGE_NAMES[targetLanguage] ?? targetLanguage) : null;
@@ -89,22 +158,13 @@ export async function gemmaAnalyze(
     messages.push({ role: "user", content: buildUserPrompt(noticeText, targetLanguage, location) });
   }
 
-  const response = await fetch(GEMMA_API_URL, {
-    method: "POST",
-    signal: AbortSignal.timeout(120_000),
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${GEMMA_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: process.env.GEMMA_MODEL ?? "gemma-4-27b-it",
-      messages,
-      temperature: 0.2,
-      max_tokens: 8192,
-      stream: !!onToken,
-      // Google AI Studio rejects response_format on streaming requests.
-      ...(!onToken && process.env.GEMMA_JSON_MODE !== "false" ? { response_format: { type: "json_object" } } : {}),
-    }),
+  const response = await fetchGemmaChatCompletion({
+    messages,
+    temperature: 0.2,
+    max_tokens: 8192,
+    stream: !!onToken,
+    // Google AI Studio rejects response_format on streaming requests.
+    ...(!onToken && process.env.GEMMA_JSON_MODE !== "false" ? { response_format: { type: "json_object" } } : {}),
   });
 
   if (!response.ok) {
@@ -233,16 +293,8 @@ export async function gemmaFollowUp(
     analysis.locationLabel ? `Location context: ${analysis.locationLabel}` : "",
   ].filter(Boolean).join("\n");
 
-  const response = await fetch(GEMMA_API_URL, {
-    method: "POST",
-    signal: AbortSignal.timeout(60_000),
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${GEMMA_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: process.env.GEMMA_MODEL ?? "gemma-4-27b-it",
-      messages: [
+  const response = await fetchGemmaChatCompletion({
+    messages: [
         {
           role: "system",
           content: `You are NoticeShield, a compassionate AI assistant helping people understand official notices.
@@ -260,10 +312,9 @@ Rules:
           content: `Here is what we know about this notice:\n\n${context}\n\nUser's question: ${question}`,
         },
       ],
-      temperature: 0.3,
-      max_tokens: 1024,
-      stream: !!onToken,
-    }),
+    temperature: 0.3,
+    max_tokens: 1024,
+    stream: !!onToken,
   });
 
   if (!response.ok) {
@@ -396,15 +447,8 @@ async function translateJsonPayload<T>(
   let lastError = "Translation failed.";
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const response = await fetch(GEMMA_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${GEMMA_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: process.env.GEMMA_MODEL ?? "gemma-4-27b-it",
-        messages: [
+    const response = await fetchGemmaChatCompletion({
+      messages: [
           {
             role: "system",
             content: `You are a precise translator. Translate the JSON field values below into ${langName}.
@@ -419,9 +463,8 @@ Rules:
             content: `Translate all human-facing string values to ${langName}:\n\n${JSON.stringify(payload)}`,
           },
         ],
-        temperature: 0.1,
-        max_tokens: maxTokens,
-      }),
+      temperature: 0.1,
+      max_tokens: maxTokens,
     });
 
     if (!response.ok) {
