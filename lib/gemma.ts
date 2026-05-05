@@ -333,7 +333,7 @@ export async function gemmaTranslateCached(
 
   const langName = LANGUAGE_NAMES[targetLanguage] ?? targetLanguage;
 
-  const payload = {
+  const corePayload = {
     noticeTypeLabel: analysis.noticeTypeLabel,
     deadline: analysis.deadline,
     summary: analysis.summary,
@@ -341,52 +341,101 @@ export async function gemmaTranslateCached(
     nextSteps: analysis.nextSteps,
     suggestedMessage: analysis.suggestedMessage,
     locationLabel: analysis.locationLabel,
+    disclaimer: analysis.disclaimer,
+  };
+
+  const resourcesPayload = {
     localResources: analysis.localResources.map((resource) => ({
       label: resource.label,
       detail: resource.detail,
       category: resource.category,
       url: resource.url,
     })),
-    disclaimer: analysis.disclaimer,
   };
 
-  const response = await fetch(GEMMA_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${GEMMA_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: process.env.GEMMA_MODEL ?? "gemma-4-27b-it",
-      messages: [
-        {
-          role: "system",
-          content: `You are a precise translator. Translate the JSON field values below into ${langName}.
+  const core = await translateJsonPayload<{
+    noticeTypeLabel?: string;
+    deadline?: string | null;
+    summary?: string;
+    riskIfIgnored?: string;
+    nextSteps?: string[];
+    suggestedMessage?: string;
+    locationLabel?: string | null;
+    disclaimer?: string;
+  }>(corePayload, langName, 3000);
+
+  const resources = analysis.localResources.length > 0
+    ? await translateJsonPayload<{ localResources?: Array<Partial<LocalResource>> }>(resourcesPayload, langName, 1800)
+    : { localResources: [] };
+
+  return {
+    ...analysis,
+    noticeTypeLabel: core.noticeTypeLabel ?? analysis.noticeTypeLabel,
+    deadline: core.deadline ?? analysis.deadline,
+    summary: core.summary ?? analysis.summary,
+    riskIfIgnored: core.riskIfIgnored ?? analysis.riskIfIgnored,
+    nextSteps: Array.isArray(core.nextSteps) ? core.nextSteps : analysis.nextSteps,
+    suggestedMessage: core.suggestedMessage ?? analysis.suggestedMessage,
+    locationLabel: core.locationLabel ?? analysis.locationLabel,
+    localResources: analysis.localResources.map((resource, i) => ({
+      ...resource,
+      label: resources.localResources?.[i]?.label ?? resource.label,
+      detail: resources.localResources?.[i]?.detail ?? resource.detail,
+    })),
+    disclaimer: core.disclaimer ?? analysis.disclaimer,
+    translation: null,
+    translationLanguage: targetLanguage,
+  };
+}
+
+async function translateJsonPayload<T>(
+  payload: Record<string, unknown>,
+  langName: string,
+  maxTokens: number
+): Promise<T> {
+  let lastError = "Translation failed.";
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const response = await fetch(GEMMA_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${GEMMA_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: process.env.GEMMA_MODEL ?? "gemma-4-27b-it",
+        messages: [
+          {
+            role: "system",
+            content: `You are a precise translator. Translate the JSON field values below into ${langName}.
 Rules:
 - Return ONLY valid JSON with the exact same keys
 - Keep proper names, agency names, addresses, phone numbers, URLs, dates, case numbers, and monetary amounts unchanged
-- Keep the localResources category and url values unchanged
+- Keep category, url, null, and boolean values unchanged
 - Translate every human-facing string naturally at a Grade 6 reading level`,
-        },
-        {
-          role: "user",
-          content: `Translate all values to ${langName}:\n\n${JSON.stringify(payload)}`,
-        },
-      ],
-      temperature: 0.1,
-      max_tokens: 5000,
-    }),
-  });
+          },
+          {
+            role: "user",
+            content: `Translate all human-facing string values to ${langName}:\n\n${JSON.stringify(payload)}`,
+          },
+        ],
+        temperature: 0.1,
+        max_tokens: maxTokens,
+      }),
+    });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Gemma translation error ${response.status}: ${error}`);
-  }
+    if (!response.ok) {
+      lastError = `Provider returned ${response.status}.`;
+      if (response.status >= 500 && attempt === 0) continue;
+      throw new Error(lastError);
+    }
 
-  try {
     const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
     const raw = data.choices?.[0]?.message?.content ?? "";
-    if (!raw) throw new Error("Gemma returned an empty translation.");
+    if (!raw) {
+      lastError = "Provider returned an empty translation.";
+      continue;
+    }
 
     const cleaned = raw
       .replace(/<thought>[\s\S]*?<\/thought>/gi, "")
@@ -397,40 +446,17 @@ Rules:
 
     const jsonStart = cleaned.indexOf("{");
     const jsonEnd = cleaned.lastIndexOf("}");
-    if (jsonStart === -1 || jsonEnd === -1) throw new Error("Gemma returned a translation without JSON.");
+    if (jsonStart === -1 || jsonEnd === -1) {
+      lastError = "Provider returned a translation without JSON.";
+      continue;
+    }
 
-    const t = JSON.parse(cleaned.slice(jsonStart, jsonEnd + 1)) as {
-      noticeTypeLabel?: string;
-      deadline?: string | null;
-      summary?: string;
-      riskIfIgnored?: string;
-      nextSteps?: string[];
-      suggestedMessage?: string;
-      locationLabel?: string | null;
-      localResources?: Array<Partial<LocalResource>>;
-      disclaimer?: string;
-    };
-
-    return {
-      ...analysis,
-      noticeTypeLabel: t.noticeTypeLabel ?? analysis.noticeTypeLabel,
-      deadline: t.deadline ?? analysis.deadline,
-      summary: t.summary ?? analysis.summary,
-      riskIfIgnored: t.riskIfIgnored ?? analysis.riskIfIgnored,
-      nextSteps: Array.isArray(t.nextSteps) ? t.nextSteps : analysis.nextSteps,
-      suggestedMessage: t.suggestedMessage ?? analysis.suggestedMessage,
-      locationLabel: t.locationLabel ?? analysis.locationLabel,
-      localResources: analysis.localResources.map((r, i) => ({
-        ...r,
-        label: t.localResources?.[i]?.label ?? r.label,
-        detail: t.localResources?.[i]?.detail ?? r.detail,
-      })),
-      disclaimer: t.disclaimer ?? analysis.disclaimer,
-      translation: null,
-      translationLanguage: targetLanguage,
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Translation failed.";
-    throw new Error(message);
+    try {
+      return JSON.parse(cleaned.slice(jsonStart, jsonEnd + 1)) as T;
+    } catch {
+      lastError = "Provider returned malformed translation JSON.";
+    }
   }
+
+  throw new Error(lastError);
 }

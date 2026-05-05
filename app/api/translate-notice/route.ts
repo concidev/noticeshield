@@ -12,8 +12,10 @@ export async function POST(req: NextRequest) {
     }
     const translated = await gemmaTranslateCached(body.analysis, body.targetLanguage);
     return NextResponse.json({ success: true, analysis: translated });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Translation failed.";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+  } catch {
+    return NextResponse.json({
+      success: false,
+      error: "Translation is temporarily unavailable. Please try again in a moment.",
+    }, { status: 500 });
   }
 }
