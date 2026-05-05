@@ -26,6 +26,82 @@ interface Props {
   onReset: () => void;
 }
 
+const UI_LABELS = {
+  en: {
+    deadline: "Deadline",
+    noticeType: "Notice Type",
+    seeNotice: "See notice",
+    locationContext: "Location context",
+    locationTailored: "Resources and next steps are tailored for",
+    whatThisMeans: "What this means",
+    riskOfIgnoring: "Risk of Ignoring",
+    requiredSteps: "Required Steps",
+    beforeYouAct: "Before you act",
+    beforeYouActBody: "Verify the deadline, sender, case number, and amount directly from the notice. For eviction, court, immigration, benefits, or shutoff notices, contact legal aid or the issuing office as soon as possible.",
+    communicationAssistant: "Communication Assistant",
+    communicationBody: "Use this generated message to contact the relevant office. Replace [brackets] before sending.",
+    draftEmail: "Draft Email",
+    draftText: "Draft Text",
+    translation: "Translation",
+    humanHelp: "Human Help",
+    visitSite: "Visit site",
+    askAbout: "Ask about this notice",
+    questionPlaceholder: "e.g. What if I miss the deadline?",
+    qaNote: "Answers are based on this analysis only. Not legal advice.",
+    translateReport: "Translate this report",
+    backToEnglish: "Back to English",
+    viewingIn: "Viewing in",
+    translate: "Translate",
+    translating: "Translating...",
+    shareQr: "Share with Advocate (QR)",
+    share: "Share",
+    downloadPdf: "Download PDF",
+    downloading: "Preparing PDF...",
+    analyzeAnother: "Analyze another notice",
+    copy: "Copy",
+    copied: "Copied",
+  },
+  es: {
+    deadline: "Fecha límite",
+    noticeType: "Tipo de aviso",
+    seeNotice: "Ver aviso",
+    locationContext: "Contexto de ubicación",
+    locationTailored: "Los recursos y los próximos pasos están adaptados para",
+    whatThisMeans: "Qué significa esto",
+    riskOfIgnoring: "Riesgo de ignorarlo",
+    requiredSteps: "Pasos requeridos",
+    beforeYouAct: "Antes de actuar",
+    beforeYouActBody: "Verifique la fecha límite, el remitente, el número de caso y el monto directamente en el aviso. Para avisos de desalojo, corte, inmigración, beneficios o servicios públicos, comuníquese con asistencia legal o con la oficina emisora lo antes posible.",
+    communicationAssistant: "Asistente de comunicación",
+    communicationBody: "Use este mensaje generado para contactar a la oficina correspondiente. Reemplace los [corchetes] antes de enviarlo.",
+    draftEmail: "Redactar correo",
+    draftText: "Redactar texto",
+    translation: "Traducción",
+    humanHelp: "Ayuda humana",
+    visitSite: "Visitar sitio",
+    askAbout: "Preguntar sobre este aviso",
+    questionPlaceholder: "p. ej., ¿Qué pasa si pierdo la fecha límite?",
+    qaNote: "Las respuestas se basan solo en este análisis. No es asesoría legal.",
+    translateReport: "Traducir este informe",
+    backToEnglish: "Volver al inglés",
+    viewingIn: "Viendo en",
+    translate: "Traducir",
+    translating: "Traduciendo...",
+    shareQr: "Compartir con un defensor (QR)",
+    share: "Compartir",
+    downloadPdf: "Descargar PDF",
+    downloading: "Preparando PDF...",
+    analyzeAnother: "Analizar otro aviso",
+    copy: "Copiar",
+    copied: "Copiado",
+  },
+};
+
+function getUiLabels(language: string | null) {
+  const labels: Record<string, typeof UI_LABELS.en> = UI_LABELS;
+  return labels[language ?? "en"] ?? UI_LABELS.en;
+}
+
 function DeadlineCountdown({ deadlineDate }: { deadlineDate: string | null }) {
   if (!deadlineDate) return null;
   // Parse as local noon to avoid UTC-offset shifting the date by a day
@@ -51,7 +127,7 @@ function DeadlineCountdown({ deadlineDate }: { deadlineDate: string | null }) {
   );
 }
 
-function CopyButton({ text }: { text: string }) {
+function CopyButton({ text, labels }: { text: string; labels: ReturnType<typeof getUiLabels> }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
     await navigator.clipboard.writeText(text);
@@ -74,7 +150,7 @@ function CopyButton({ text }: { text: string }) {
       <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
         {copied ? "check" : "content_copy"}
       </span>
-      {copied ? "Copied" : "Copy"}
+      {copied ? labels.copied : labels.copy}
     </button>
   );
 }
@@ -124,6 +200,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
   const [showQR, setShowQR] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const display = translated ?? analysis;
+  const ui = getUiLabels(display.translationLanguage);
 
   useEffect(() => {
     if (!showQR || qrDataUrl) return;
@@ -425,9 +502,9 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           borderRadius: 8, padding: 16, display: "flex", flexDirection: "column", gap: 4,
           boxShadow: "0 1px 4px rgba(0,53,95,0.05)",
         }}>
-          <span className="text-label-sm" style={{ color: "var(--on-surface-variant)", textTransform: "uppercase" }}>Deadline</span>
+          <span className="text-label-sm" style={{ color: "var(--on-surface-variant)", textTransform: "uppercase" }}>{ui.deadline}</span>
           <span className="text-body-lg" style={{ color: "var(--on-surface)", fontWeight: 600 }}>
-            {display.deadline ?? "See notice"}
+            {display.deadline ?? ui.seeNotice}
           </span>
           <DeadlineCountdown deadlineDate={display.deadlineDate} />
         </div>
@@ -436,7 +513,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           borderRadius: 8, padding: 16, display: "flex", flexDirection: "column", gap: 4,
           boxShadow: "0 1px 4px rgba(0,53,95,0.05)",
         }}>
-          <span className="text-label-sm" style={{ color: "var(--on-surface-variant)", textTransform: "uppercase" }}>Notice Type</span>
+          <span className="text-label-sm" style={{ color: "var(--on-surface-variant)", textTransform: "uppercase" }}>{ui.noticeType}</span>
           <span className="text-body-lg" style={{ color: "var(--on-surface)", fontWeight: 600 }}>
             {display.noticeTypeLabel}
           </span>
@@ -456,9 +533,9 @@ export function ResultDashboard({ analysis, onReset }: Props) {
         }}>
           <span className="material-symbols-outlined" style={{ color: "var(--primary)", fontSize: 22, flexShrink: 0 }}>location_on</span>
           <div>
-            <span className="text-label-sm" style={{ color: "var(--on-surface-variant)", textTransform: "uppercase" }}>Location context</span>
+            <span className="text-label-sm" style={{ color: "var(--on-surface-variant)", textTransform: "uppercase" }}>{ui.locationContext}</span>
             <p className="text-body-md" style={{ color: "var(--on-surface)", margin: "2px 0 0" }}>
-              Resources and next steps are tailored for {display.locationLabel}.
+              {ui.locationTailored} {display.locationLabel}.
             </p>
           </div>
         </div>
@@ -475,7 +552,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
         </div>
         <h2 className="text-h2" style={{ color: "var(--primary)", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 8 }}>
           <span className="material-symbols-outlined" style={{ fontSize: 22 }}>lightbulb</span>
-          What this means
+          {ui.whatThisMeans}
         </h2>
         <p className="text-body-md" style={{ color: "var(--on-surface-variant)", margin: 0, lineHeight: "1.6", position: "relative", zIndex: 1 }}>
           {display.summary}
@@ -489,7 +566,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
       }}>
         <h2 className="text-h2" style={{ color: "var(--error)", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}>
           <span className="material-symbols-outlined" style={{ fontSize: 22 }}>security_update_warning</span>
-          Risk of Ignoring
+          {ui.riskOfIgnoring}
         </h2>
         <p className="text-body-md" style={{ color: "var(--on-surface-variant)", margin: 0, lineHeight: "1.6" }}>
           {display.riskIfIgnored}
@@ -506,7 +583,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
         }}>
         <div style={{ padding: "14px 20px", background: "var(--surface-low)", borderBottom: "1px solid var(--outline-variant)", display: "flex", alignItems: "center", gap: 8 }}>
           <span className="material-symbols-outlined" style={{ color: "var(--secondary)", fontVariationSettings: "'FILL' 1", fontSize: 20 }}>checklist</span>
-          <h2 className="text-h2" style={{ margin: 0 }}>Required Steps</h2>
+          <h2 className="text-h2" style={{ margin: 0 }}>{ui.requiredSteps}</h2>
         </div>
         <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
           {display.nextSteps.map((step, i) => {
@@ -552,9 +629,9 @@ export function ResultDashboard({ analysis, onReset }: Props) {
       }}>
         <span className="material-symbols-outlined" style={{ color: "var(--primary)", fontSize: 22, flexShrink: 0 }}>verified_user</span>
         <div>
-          <h2 className="text-label-md" style={{ color: "var(--on-surface)", margin: "0 0 4px" }}>Before you act</h2>
+          <h2 className="text-label-md" style={{ color: "var(--on-surface)", margin: "0 0 4px" }}>{ui.beforeYouAct}</h2>
           <p className="text-body-md" style={{ color: "var(--on-surface-variant)", margin: 0 }}>
-            Verify the deadline, sender, case number, and amount directly from the notice. For eviction, court, immigration, benefits, or shutoff notices, contact legal aid or the issuing office as soon as possible.
+            {ui.beforeYouActBody}
           </p>
         </div>
       </div>
@@ -566,10 +643,10 @@ export function ResultDashboard({ analysis, onReset }: Props) {
         }}>
           <h2 className="text-h2" style={{ margin: "0 0 8px", display: "flex", alignItems: "center", gap: 8 }}>
             <span className="material-symbols-outlined" style={{ fontSize: 22, color: "var(--primary)" }}>chat_bubble</span>
-            Communication Assistant
+            {ui.communicationAssistant}
           </h2>
           <p className="text-label-sm" style={{ color: "var(--on-surface-variant)", margin: "0 0 12px" }}>
-            Use this generated message to contact the relevant office. Replace [brackets] before sending.
+            {ui.communicationBody}
           </p>
           <div style={{
             background: "var(--surface)", border: "1px solid var(--outline-variant)",
@@ -583,7 +660,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
             </pre>
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-            <CopyButton text={display.suggestedMessage} />
+            <CopyButton text={display.suggestedMessage} labels={ui} />
             <a
               href={`mailto:?subject=${encodeURIComponent(`Re: ${display.noticeTypeLabel}`)}&body=${encodeURIComponent(display.suggestedMessage)}`}
               style={{
@@ -596,7 +673,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 16 }}>mail</span>
-              Draft Email
+              {ui.draftEmail}
             </a>
             <a
               href={`sms:?body=${encodeURIComponent(display.suggestedMessage)}`}
@@ -610,7 +687,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 16 }}>sms</span>
-              Draft Text
+              {ui.draftText}
             </a>
           </div>
         </div>
@@ -620,7 +697,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           <div style={{ padding: "12px 16px", background: "var(--surface-low)", borderBottom: "1px solid var(--outline-variant)", display: "flex", alignItems: "center", gap: 8 }}>
             <span className="material-symbols-outlined" style={{ fontSize: 18, color: "var(--secondary)" }}>translate</span>
             <h3 className="text-label-md" style={{ margin: 0, color: "var(--on-surface)" }}>
-              Translation — {display.translationLanguage?.toUpperCase() ?? ""}
+              {ui.translation} — {display.translationLanguage?.toUpperCase() ?? ""}
             </h3>
           </div>
           <div style={{ padding: 16 }}>
@@ -635,7 +712,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
       }}>
         <h2 className="text-h2" style={{ margin: "0 0 16px", display: "flex", alignItems: "center", gap: 8 }}>
           <span className="material-symbols-outlined" style={{ fontSize: 22, color: "var(--primary)", fontVariationSettings: "'FILL' 1" }}>support_agent</span>
-          Human Help
+          {ui.humanHelp}
         </h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
           {((display.localResources?.length ?? 0) > 0 ? display.localResources : [
@@ -663,7 +740,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
                   color: "var(--secondary)", display: "inline-flex", alignItems: "center", gap: 4,
                   textDecoration: "none", marginTop: 4,
                 }}>
-                  Visit site
+                  {ui.visitSite}
                   <span className="material-symbols-outlined" style={{ fontSize: 14 }}>open_in_new</span>
                 </a>
               )}
@@ -712,7 +789,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
       }}>
         <div style={{ padding: "14px 20px", background: "var(--surface-low)", borderBottom: "1px solid var(--outline-variant)", display: "flex", alignItems: "center", gap: 8 }}>
           <span className="material-symbols-outlined" style={{ color: "var(--primary)", fontVariationSettings: "'FILL' 1", fontSize: 20 }}>forum</span>
-          <h2 className="text-h2" style={{ margin: 0 }}>Ask about this notice</h2>
+          <h2 className="text-h2" style={{ margin: 0 }}>{ui.askAbout}</h2>
         </div>
         <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
           {qaHistory.length === 0 && !answering && (
@@ -788,7 +865,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
               value={currentQuestion}
               onChange={(e) => setCurrentQuestion(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") void handleAsk(); }}
-              placeholder="e.g. What if I miss the deadline?"
+              placeholder={ui.questionPlaceholder}
               disabled={answering}
               aria-label="Ask a follow-up question about this notice"
               style={{
@@ -817,7 +894,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
             </button>
           </div>
           <p className="text-label-sm" style={{ color: "var(--outline)", margin: 0 }}>
-            Answers are based on this analysis only. Not legal advice.
+            {ui.qaNote}
           </p>
         </div>
       </div>
@@ -829,14 +906,14 @@ export function ResultDashboard({ analysis, onReset }: Props) {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
           <span className="material-symbols-outlined" style={{ fontSize: 20, color: "var(--secondary)", fontVariationSettings: "'FILL' 1" }}>translate</span>
-          <h2 className="text-h2" style={{ margin: 0 }}>Translate this report</h2>
+          <h2 className="text-h2" style={{ margin: 0 }}>{ui.translateReport}</h2>
           {translated && (
             <button
               onClick={() => setTranslated(null)}
               className="text-label-sm"
               style={{ marginLeft: "auto", background: "none", border: "none", color: "var(--outline)", cursor: "pointer", fontFamily: "inherit" }}
             >
-              Back to English
+              {ui.backToEnglish}
             </button>
           )}
         </div>
@@ -848,7 +925,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
             borderRadius: 9999, padding: "4px 12px", fontSize: 12, fontWeight: 700,
           }}>
             <span className="material-symbols-outlined" style={{ fontSize: 14, fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-            Viewing in {TRANSLATE_LANGUAGES.find(l => l.code === translateLang)?.label ?? translateLang}
+            {ui.viewingIn} {TRANSLATE_LANGUAGES.find(l => l.code === translateLang)?.label ?? translateLang}
           </div>
         ) : (
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -893,12 +970,12 @@ export function ResultDashboard({ analysis, onReset }: Props) {
               {translating ? (
                 <>
                   <span className="material-symbols-outlined" style={{ fontSize: 18, animation: "spin 1.2s linear infinite" }}>progress_activity</span>
-                  Translating…
+                  {ui.translating}
                 </>
               ) : (
                 <>
                   <span className="material-symbols-outlined" style={{ fontSize: 18 }}>translate</span>
-                  Translate
+                  {ui.translate}
                 </>
               )}
             </button>
@@ -930,7 +1007,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
         }}
       >
         <span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>qr_code_2</span>
-        Share with Advocate (QR)
+        {ui.shareQr}
       </button>
 
       {canShare && (
@@ -949,7 +1026,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>share</span>
-          Share Action Plan
+          {ui.share}
         </button>
       )}
       <button
@@ -976,12 +1053,12 @@ export function ResultDashboard({ analysis, onReset }: Props) {
               borderTopColor: "var(--on-surface-variant)", borderRadius: "50%",
               animation: "spin 0.7s linear infinite",
             }} />
-            Generating PDF…
+            {ui.downloading}
           </>
         ) : (
           <>
             <span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>download</span>
-            Download Action Plan (PDF)
+            {ui.downloadPdf}
           </>
         )}
       </button>
@@ -992,7 +1069,7 @@ export function ResultDashboard({ analysis, onReset }: Props) {
         style={{ width: "100%", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
       >
         <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_back</span>
-        Analyze Another Notice
+        {ui.analyzeAnother}
       </button>
     </div>
   );
