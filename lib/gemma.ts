@@ -2,8 +2,8 @@ import type { LocalResource, NoticeAnalysis, NoticeType, UrgencyLevel, UserLocat
 
 const GEMMA_API_URL = process.env.GEMMA_API_URL ?? "";
 const GEMMA_API_KEY = process.env.GEMMA_API_KEY ?? "";
-const DEFAULT_GEMMA_MODEL = "gemma-3-27b-it";
-const FALLBACK_GEMMA_MODELS = ["gemma-3-27b-it", "gemma-3n-e4b-it"];
+const DEFAULT_GEMMA_MODEL = "gemma-4-31b-it";
+const FALLBACK_GEMMA_MODELS = ["gemma-4-31b-it", "models/gemma-4-31b-it"];
 
 const SYSTEM_PROMPT = `You are NoticeShield, an AI assistant that helps people understand urgent civic notices.
 Your job is to analyze official notices and return a structured JSON response.
@@ -47,9 +47,10 @@ const LANGUAGE_NAMES: Record<string, string> = {
 function getGemmaModelCandidates(): string[] {
   const configured = process.env.GEMMA_MODEL ?? DEFAULT_GEMMA_MODEL;
   const candidates = [
+    DEFAULT_GEMMA_MODEL,
+    ...FALLBACK_GEMMA_MODELS,
     configured,
     configured.replace(/^models\//, ""),
-    ...FALLBACK_GEMMA_MODELS,
   ].filter(Boolean);
 
   return [...new Set(candidates)];
@@ -384,7 +385,7 @@ export async function gemmaTranslateCached(
 
   const langName = LANGUAGE_NAMES[targetLanguage] ?? targetLanguage;
 
-  const corePayload = {
+  const payload = {
     noticeTypeLabel: analysis.noticeTypeLabel,
     deadline: analysis.deadline,
     summary: analysis.summary,
@@ -392,19 +393,16 @@ export async function gemmaTranslateCached(
     nextSteps: analysis.nextSteps,
     suggestedMessage: analysis.suggestedMessage,
     locationLabel: analysis.locationLabel,
-    disclaimer: analysis.disclaimer,
-  };
-
-  const resourcesPayload = {
     localResources: analysis.localResources.map((resource) => ({
       label: resource.label,
       detail: resource.detail,
       category: resource.category,
       url: resource.url,
     })),
+    disclaimer: analysis.disclaimer,
   };
 
-  const core = await translateJsonPayload<{
+  const translated = await translateJsonPayload<{
     noticeTypeLabel?: string;
     deadline?: string | null;
     summary?: string;
@@ -412,28 +410,25 @@ export async function gemmaTranslateCached(
     nextSteps?: string[];
     suggestedMessage?: string;
     locationLabel?: string | null;
+    localResources?: Array<Partial<LocalResource>>;
     disclaimer?: string;
-  }>(corePayload, langName, 3000);
-
-  const resources = analysis.localResources.length > 0
-    ? await translateJsonPayload<{ localResources?: Array<Partial<LocalResource>> }>(resourcesPayload, langName, 1800)
-    : { localResources: [] };
+  }>(payload, langName, 5000);
 
   return {
     ...analysis,
-    noticeTypeLabel: core.noticeTypeLabel ?? analysis.noticeTypeLabel,
-    deadline: core.deadline ?? analysis.deadline,
-    summary: core.summary ?? analysis.summary,
-    riskIfIgnored: core.riskIfIgnored ?? analysis.riskIfIgnored,
-    nextSteps: Array.isArray(core.nextSteps) ? core.nextSteps : analysis.nextSteps,
-    suggestedMessage: core.suggestedMessage ?? analysis.suggestedMessage,
-    locationLabel: core.locationLabel ?? analysis.locationLabel,
+    noticeTypeLabel: translated.noticeTypeLabel ?? analysis.noticeTypeLabel,
+    deadline: translated.deadline ?? analysis.deadline,
+    summary: translated.summary ?? analysis.summary,
+    riskIfIgnored: translated.riskIfIgnored ?? analysis.riskIfIgnored,
+    nextSteps: Array.isArray(translated.nextSteps) ? translated.nextSteps : analysis.nextSteps,
+    suggestedMessage: translated.suggestedMessage ?? analysis.suggestedMessage,
+    locationLabel: translated.locationLabel ?? analysis.locationLabel,
     localResources: analysis.localResources.map((resource, i) => ({
       ...resource,
-      label: resources.localResources?.[i]?.label ?? resource.label,
-      detail: resources.localResources?.[i]?.detail ?? resource.detail,
+      label: translated.localResources?.[i]?.label ?? resource.label,
+      detail: translated.localResources?.[i]?.detail ?? resource.detail,
     })),
-    disclaimer: core.disclaimer ?? analysis.disclaimer,
+    disclaimer: translated.disclaimer ?? analysis.disclaimer,
     translation: null,
     translationLanguage: targetLanguage,
   };
